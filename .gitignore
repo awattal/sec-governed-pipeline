@@ -1,0 +1,15 @@
+# Python virtual environment - regenerable, machine-specific
+.venv/
+
+# Python bytecode cache - auto-generated
+__pycache__/
+*.pyc
+
+# macOS Finder metadata
+.DS_Store
+
+# Secrets - API keys, credentials
+.env
+
+# Raw data - too large for Git, downloadable from SEC
+data/raw/
