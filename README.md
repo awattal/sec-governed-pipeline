@@ -5,7 +5,12 @@ generation on SEC financial statement data, with human
 oversight and documented evaluation.
 
 ## Data
-SEC Financial Statement Data Sets - public quarterly filings.
+
+Raw SEC files are not committed to this repository - they are
+large and freely available from the source. To reproduce:
+
+1. Download [which files] from [the SEC URL]
+2. Place them in `data/raw/`
 
 ## Stack
 DuckDB, dbt, Dagster, GitHub Actions, Great Expectations,
