@@ -12,5 +12,6 @@ __pycache__/
 .env
 
 # Raw data - too large for Git, downloadable from SEC
-data/raw/*
-!data/raw/.gitkeep
+data/**
+!data/**/
+!data/**/.gitkeep
