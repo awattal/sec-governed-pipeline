@@ -1,8 +1,8 @@
 # AI Governance - SEC data
 
 An AI governance case study: automated data quality rule
-generation on SEC financial statement data, with human
-oversight and documented evaluation.main version
+generation on SEC financial statement data, with human oversight and documented evaluation.
+
 
 ## Data
 
