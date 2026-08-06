@@ -1,0 +1,175 @@
+┌─────────┬─────────┬─────────────┬─────────────┬─────────────┐
+│  form   │ filings │ min_periods │ avg_periods │ max_periods │
+│ varchar │  int64  │    int64    │   double    │    int64    │
+├─────────┼─────────┼─────────────┼─────────────┼─────────────┤
+│ 10-Q    │    5278 │           1 │         8.6 │          41 │
+│ 10-K    │     353 │           3 │         7.7 │          39 │
+│ 6-K     │     181 │           3 │         7.6 │          27 │
+│ S-1     │      87 │           3 │        15.4 │          26 │
+│ 20-F    │      83 │           3 │         7.6 │          25 │
+│ S-1/A   │      67 │           5 │        14.4 │          26 │
+│ 10-Q/A  │      65 │           4 │         8.2 │          19 │
+│ F-1/A   │      26 │           3 │         9.3 │          17 │
+│ 10-K/A  │      23 │           3 │         8.2 │          33 │
+│ POS AM  │      22 │           4 │         8.4 │          23 │
+│ F-1     │      19 │           3 │         9.5 │          17 │
+│ S-4/A   │      17 │           4 │        11.0 │          17 │
+│ S-4     │      15 │           4 │        12.5 │          26 │
+│ 40-F    │      14 │           3 │         6.1 │          11 │
+│ 8-K     │      10 │           5 │         7.9 │          10 │
+│ 6-K/A   │      10 │           5 │         9.3 │          14 │
+│ 11-K    │       9 │           2 │         2.8 │           4 │
+│ 20-F/A  │       7 │           4 │         5.9 │          10 │
+│ F-4/A   │       6 │           5 │         8.7 │          15 │
+│ 10-12G  │       3 │           2 │         7.0 │          10 │
+│ 10-KT   │       2 │           7 │         9.5 │          12 │
+│ 11-K/A  │       2 │           2 │         2.0 │           2 │
+│ 424B3   │       1 │          12 │        12.0 │          12 │
+│ S-4 POS │       1 │           7 │         7.0 │           7 │
+│ 8-K/A   │       1 │          20 │        20.0 │          20 │
+│ SP 15D2 │       1 │           6 │         6.0 │           6 │
+│ F-3     │       1 │           7 │         7.0 │           7 │
+└─────────┴─────────┴─────────────┴─────────────┴─────────────┘
+  27 rows                                           5 columns
+┌───────┬───────────┬─────────────┐
+│ qtrs  │ row_count │ pct_of_rows │
+│ int64 │   int64   │   double    │
+├───────┼───────────┼─────────────┤
+│     0 │   1773045 │       46.26 │
+│     1 │    900883 │        23.5 │
+│     3 │    851219 │       22.21 │
+│     4 │    210120 │        5.48 │
+│     2 │     97103 │        2.53 │
+│     5 │       163 │         0.0 │
+│     6 │       125 │         0.0 │
+│     7 │        52 │         0.0 │
+│    14 │        38 │         0.0 │
+│     8 │        34 │         0.0 │
+│    13 │        20 │         0.0 │
+│    17 │        20 │         0.0 │
+│    10 │        19 │         0.0 │
+│    12 │        16 │         0.0 │
+│    11 │        14 │         0.0 │
+│     9 │        14 │         0.0 │
+│    15 │        12 │         0.0 │
+│    16 │         9 │         0.0 │
+│    20 │         6 │         0.0 │
+│    21 │         5 │         0.0 │
+│     · │         · │          ·  │
+│     · │         · │          ·  │
+│     · │         · │          ·  │
+│    51 │         2 │         0.0 │
+│    41 │         2 │         0.0 │
+│    24 │         2 │         0.0 │
+│    48 │         2 │         0.0 │
+│    26 │         2 │         0.0 │
+│    44 │         1 │         0.0 │
+│    40 │         1 │         0.0 │
+│    22 │         1 │         0.0 │
+│    35 │         1 │         0.0 │
+│    23 │         1 │         0.0 │
+│    32 │         1 │         0.0 │
+│    58 │         1 │         0.0 │
+│    59 │         1 │         0.0 │
+│    68 │         1 │         0.0 │
+│    74 │         1 │         0.0 │
+│    79 │         1 │         0.0 │
+│    27 │         1 │         0.0 │
+│    87 │         1 │         0.0 │
+│   101 │         1 │         0.0 │
+│    29 │         1 │         0.0 │
+└───────┴───────────┴─────────────┘
+  54 rows (40 shown)    3 columns
+┌───────────┬───────────┬─────────────┬───────────────┐
+│ tag_class │ row_count │ pct_of_rows │ distinct_tags │
+│  varchar  │   int64   │   double    │     int64     │
+├───────────┼───────────┼─────────────┼───────────────┤
+│ 0         │   3509813 │       91.57 │          4843 │
+│ 1         │    323164 │        8.43 │         57392 │
+└───────────┴───────────┴─────────────┴───────────────┘
+┌─────────┬──────────┐
+│  iord   │ tag_rows │
+│ varchar │  int64   │
+├─────────┼──────────┤
+│ D       │    68945 │
+│ I       │    15962 │
+└─────────┴──────────┘
+┌─────────┬─────────────────────┬───────────┬───────────────┐
+│  iord   │     fact_shape      │ row_count │ distinct_tags │
+│ varchar │       varchar       │   int64   │     int64     │
+├─────────┼─────────────────────┼───────────┼───────────────┤
+│ D       │ duration (qtrs > 0) │   1801864 │          2969 │
+│ D       │ instant (qtrs = 0)  │     22930 │           715 │
+│ I       │ instant (qtrs = 0)  │   1685019 │          1873 │
+└─────────┴─────────────────────┴───────────┴───────────────┘
+┌────────────────────────────────────────────────────────────────────────────────────────┬──────────────┬─────────┬─────────┬───────┬──────────────────────┬──────────┬─────────┬─────────────┐
+│                                          tag                                           │   version    │  coreg  │  iord   │ qtrs  │         adsh         │  ddate   │   uom   │    value    │
+│                                        varchar                                         │   varchar    │ varchar │ varchar │ int64 │       varchar        │  int64   │ varchar │   double    │
+├────────────────────────────────────────────────────────────────────────────────────────┼──────────────┼─────────┼─────────┼───────┼──────────────────────┼──────────┼─────────┼─────────────┤
+│ AcceleratedShareRepurchasesAdjustmentToRecordedAmount                                  │ us-gaap/2025 │ NULL    │ D       │     0 │ 0001193125-25-319720 │ 20240831 │ USD     │   2000000.0 │
+│ AcceleratedShareRepurchasesAdjustmentToRecordedAmount                                  │ us-gaap/2025 │ NULL    │ D       │     0 │ 0001193125-25-319720 │ 20240831 │ USD     │   2000000.0 │
+│ AccretionAmortizationOfDiscountsAndPremiumsInvestments                                 │ us-gaap/2025 │ NULL    │ D       │     0 │ 0001140361-25-044213 │ 20250930 │ USD     │         0.0 │
+│ AccretionAmortizationOfDiscountsAndPremiumsInvestments                                 │ us-gaap/2025 │ NULL    │ D       │     0 │ 0001628280-25-052343 │ 20250930 │ USD     │         0.0 │
+│ AdjustmentToAdditionalPaidInCapitalConvertibleDebtInstrumentIssuedAtSubstantialPremium │ us-gaap/2025 │ NULL    │ D       │     0 │ 0001628280-25-046844 │ 20250430 │ USD     │  28200000.0 │
+│ AdjustmentsForGainsLossesOnDisposalOfFinancialAssets                                   │ ifrs/2024    │ NULL    │ D       │     0 │ 0001104659-25-105894 │ 20250228 │ AUD     │  -8000000.0 │
+│ AdjustmentsForInterestExpense                                                          │ ifrs/2024    │ NULL    │ D       │     0 │ 0001493152-25-023519 │ 20250531 │ USD     │      4000.0 │
+│ AdjustmentsRelatedToTaxWithholdingForShareBasedCompensation                            │ us-gaap/2025 │ NULL    │ D       │     0 │ 0001193125-25-277498 │ 20250331 │ USD     │    100000.0 │
+│ AdjustmentsRelatedToTaxWithholdingForShareBasedCompensation                            │ us-gaap/2025 │ NULL    │ D       │     0 │ 0001193125-25-277498 │ 20250930 │ USD     │    100000.0 │
+│ AdjustmentsRelatedToTaxWithholdingForShareBasedCompensation                            │ us-gaap/2025 │ NULL    │ D       │     0 │ 0001193125-25-277498 │ 20240430 │ USD     │    100000.0 │
+│ AdjustmentsRelatedToTaxWithholdingForShareBasedCompensation                            │ us-gaap/2025 │ NULL    │ D       │     0 │ 0001193125-25-277498 │ 20241231 │ USD     │    100000.0 │
+│ AdjustmentsRelatedToTaxWithholdingForShareBasedCompensation                            │ us-gaap/2025 │ NULL    │ D       │     0 │ 0001193125-25-277498 │ 20231231 │ USD     │    100000.0 │
+│ AdjustmentsRelatedToTaxWithholdingForShareBasedCompensation                            │ us-gaap/2025 │ NULL    │ D       │     0 │ 0001193125-25-277498 │ 20240630 │ USD     │    100000.0 │
+│ AdjustmentsRelatedToTaxWithholdingForShareBasedCompensation                            │ us-gaap/2025 │ NULL    │ D       │     0 │ 0001193125-25-277498 │ 20250630 │ USD     │    100000.0 │
+│ AdjustmentsRelatedToTaxWithholdingForShareBasedCompensation                            │ us-gaap/2025 │ NULL    │ D       │     0 │ 0001193125-25-277498 │ 20250430 │ USD     │    100000.0 │
+│ AdjustmentsRelatedToTaxWithholdingForShareBasedCompensation                            │ us-gaap/2025 │ NULL    │ D       │     0 │ 0001628280-25-049683 │ 20250731 │ USD     │ 411400000.0 │
+│ AdjustmentsRelatedToTaxWithholdingForShareBasedCompensation                            │ us-gaap/2024 │ NULL    │ D       │     0 │ 0001628280-25-049844 │ 20240331 │ USD     │    100000.0 │
+│ AdjustmentsRelatedToTaxWithholdingForShareBasedCompensation                            │ us-gaap/2024 │ NULL    │ D       │     0 │ 0001628280-25-049844 │ 20250331 │ USD     │    300000.0 │
+│ AdjustmentsRelatedToTaxWithholdingForShareBasedCompensation                            │ us-gaap/2025 │ NULL    │ D       │     0 │ 0001769628-25-000062 │ 20250331 │ USD     │  16000000.0 │
+│ AdjustmentsToAdditionalPaidInCapitalMarkToMarket                                       │ us-gaap/2025 │ NULL    │ D       │     0 │ 0001213900-25-109292 │ 20250531 │ USD     │   5313000.0 │
+│ AdjustmentsToAdditionalPaidInCapitalMarkToMarket                                       │ us-gaap/2025 │ NULL    │ D       │     0 │ 0001213900-25-109998 │ 20250630 │ USD     │   2024000.0 │
+│ AdjustmentsToAdditionalPaidInCapitalOther                                              │ us-gaap/2025 │ NULL    │ D       │     0 │ 0001185185-25-001785 │ 20250630 │ USD     │    177474.0 │
+│ AdjustmentsToAdditionalPaidInCapitalOther                                              │ us-gaap/2025 │ NULL    │ D       │     0 │ 0001185185-25-001785 │ 20250731 │ USD     │    142086.0 │
+│ AdjustmentsToAdditionalPaidInCapitalOther                                              │ us-gaap/2025 │ NULL    │ D       │     0 │ 0001185185-25-001785 │ 20250531 │ USD     │     12106.0 │
+│ AdjustmentsToAdditionalPaidInCapitalOther                                              │ us-gaap/2025 │ NULL    │ D       │     0 │ 0001185185-25-001785 │ 20250531 │ USD     │      6650.0 │
+└────────────────────────────────────────────────────────────────────────────────────────┴──────────────┴─────────┴─────────┴───────┴──────────────────────┴──────────┴─────────┴─────────────┘
+  25 rows                                                                                                                                                                           9 columns
+┌────────────────────┬────────────┬───────────────┐
+│   violation_type   │ key_groups │ affected_rows │
+│      varchar       │   int64    │    int128     │
+├────────────────────┼────────────┼───────────────┤
+│ conflicting values │         49 │            98 │
+│ exact duplicate    │          1 │             2 │
+└────────────────────┴────────────┴───────────────┘
+┌────────────┬───────────────┐
+│ key_groups │ affected_rows │
+│   int64    │    int128     │
+├────────────┼───────────────┤
+│          0 │          NULL │
+└────────────┴───────────────┘
+┌─────────────┬───────────┬─────────────┬───────────────┐
+│  taxonomy   │ row_count │ pct_of_rows │ distinct_tags │
+│   varchar   │   int64   │   double    │     int64     │
+├─────────────┼───────────┼─────────────┼───────────────┤
+│ us-gaap     │   3446030 │       98.18 │          4030 │
+│ ifrs        │     62710 │        1.79 │           782 │
+│ us-gaap-ebp │       709 │        0.02 │            40 │
+│ srt         │       358 │        0.01 │            10 │
+│ dei         │         6 │         0.0 │             2 │
+└─────────────┴───────────┴─────────────┴───────────────┘
+┌────────────────────────────────┬───────────┬─────────────┬───────────────┐
+│           fact_level           │ row_count │ pct_of_rows │ distinct_tags │
+│            varchar             │   int64   │   double    │     int64     │
+├────────────────────────────────┼───────────┼─────────────┼───────────────┤
+│ dimensional (segments present) │   2255614 │       58.85 │         23940 │
+│ consolidated (segments null)   │   1577363 │       41.15 │         54998 │
+└────────────────────────────────┴───────────┴─────────────┴───────────────┘
+┌────────────────────┬───────────────────┬──────────────────┬─────────┐
+│        tag         │ consolidated_rows │ dimensional_rows │ filings │
+│      varchar       │       int64       │      int64       │  int64  │
+├────────────────────┼───────────────────┼──────────────────┼─────────┤
+│ Assets             │             13172 │            15028 │    6266 │
+│ Liabilities        │             11480 │             3894 │    5605 │
+│ NetIncomeLoss      │             28971 │            55673 │    5825 │
+│ Revenues           │              7581 │            44107 │    2052 │
+│ StockholdersEquity │             28805 │           123777 │    5691 │
+└────────────────────┴───────────────────┴──────────────────┴─────────┘
