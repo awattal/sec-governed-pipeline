@@ -13,7 +13,7 @@
             "type": "file",
             "path": "./data/sec.duckdb",
             "attached": true,
-            "readOnly": false
+            "readOnly": true
         }
     ],
     "duckdb.defaultDatabase": "sec"

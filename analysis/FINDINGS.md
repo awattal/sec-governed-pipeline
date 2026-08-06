@@ -10,7 +10,47 @@ sub 6,304 / num 3,832,977 / pre 719,346 / tag 84,907.
 
 ---
 
+## Tags
+
+Each finding is tagged by what it becomes downstream.
+
+- **Discovery** — established once, informed a decision, does not recur.
+  Some discoveries spawn an assertion; the finding stays discovery, the
+  guard derived from it is listed separately.
+- **Assertion** — must hold on every load. Implemented as a dbt test.
+  A violation fails the build.
+- **Monitor** — tracked with a threshold. Movement is reported to an
+  exception table, not fatal.
+
+| Finding | Tag | Becomes |
+|---------|-----|---------|
+| F1  | Discovery | Assertion: `period`, `filed`, `changed` cast to DATE; load fails on any uncastable value |
+| F2  | Assertion | `wksi`, `prevrpt`, `detail` accept only {0, 1} |
+| F3  | Discovery | — (F1's cast subsumes the corrected check) |
+| F4  | Monitor   | Custom share of dictionary entries; currently 91.4% |
+| F5  | Discovery | — |
+| F6  | Discovery | Assertion: every `adsh` in `num` resolves to `sub` |
+| F7  | Assertion | `iord` accepts only {I, D}, no nulls |
+| F8  | Monitor   | `qtrs > 4` row share; currently ~0.01% |
+| F9  | Discovery | — |
+| F10 | Monitor   | `iord = 'D'` with `qtrs = 0`; currently 0.65% of standard-tag rows |
+| F11 | Assertion | Every (`tag`, `version`) in `num` resolves to `tag` |
+| F12 | Assertion | Primary key unique where `segments is null` |
+| F12 | Monitor   | Full-key violations; currently ~100 rows/quarter, one filer |
+| F13 | Discovery | Assertion: taxonomy family within {us-gaap, ifrs, us-gaap-ebp, srt, dei} |
+| F14 | Discovery | Assertion: mart grain unique with `segments is null` |
+| F14 | Monitor   | `Revenues` filing coverage; currently 32.5% |
+
+Thresholds are initial values set from 2025Q4 and will be revised once a
+second batch establishes normal variation.
+
+---
+
 ## F1: Date fields are stored and read as integers
+
+**Discovery.** Derived assertion: cast to DATE at the staging
+     boundary, fail the load on any uncastable value. This also covers
+     the calendar-validity gap left open below — 20250230 fails a cast.
 
 **Documented:** `period`, `filed` and `changed` are DATE (yyyymmdd).
 
@@ -32,6 +72,8 @@ the boundary rather than assumed downstream.
 
 ## F2: Boolean flags conform to their documented domain
 
+**Assertion.** Domain {0, 1} on all three columns.
+
 **Documented:** `wksi`, `prevrpt` and `detail` are BOOLEAN,
 expressed as 1 or 0.
 
@@ -51,6 +93,9 @@ visible as a regression rather than discovered by accident.
 ---
 
 ## F3: A date validity check that was wrong
+
+**Discovery.** No recurring check; the F1 cast supersedes it.
+     Retained as the documented case for human review of generated rules.
 
 **Check:** Verify `period` is a well-formed yyyymmdd value —
 eight digits, month 1-12, day 1-31.
@@ -88,6 +133,9 @@ one.
 
 ## F4: 91% of the tag vocabulary is filer-defined
 
+**Monitor.** Custom share of dictionary entries, currently 91.4%.
+     Investigate a move beyond ±5 points.
+
 **Documented:** `custom` indicates whether a tag comes from a
 standard taxonomy (0) or was created by the filer (1).
 
@@ -107,6 +155,8 @@ switched off within a month.
 ---
 
 ## F5: Custom tags are overwhelmingly single-use
+
+ **Discovery.**
 
 **Actual:** Of the 77,576 custom tags defined, 57,392 appear on a
 primary statement — leaving 20,184 defined but never used. Of
@@ -131,6 +181,10 @@ demand that the standard taxonomy does not currently cover.
 
 ## F6 — Filings report facts for multiple periods
 
+**Discovery.** Derived assertion: referential integrity `num` → `sub`
+     on `adsh`, and grain uniqueness on any model claiming
+     one-row-per-filer-per-period.
+
 A single filing carries facts at many period-end dates, not one. 10-Q
 filings average 8.6 distinct `ddate` values (min 1, max 41); 10-K
 filings average 7.7 (min 3, max 39). This is expected behaviour — SEC
@@ -150,6 +204,8 @@ reconciliation. Every filing with facts has a submission record.
 
 ## F7 — `iord` domain verified
 
+**Assertion.** Domain {I, D}, not null.
+
 The `iord` column in `tag` takes exactly two values, `I` (instant) and
 `D` (duration), with no nulls. Companion check to F2.
 
@@ -158,6 +214,9 @@ and a rule built on an unverified domain is the failure mode
 documented in F5.
 
 ## F8 — `qtrs` distribution and out-of-range tail
+
+ **Monitor.** Share of rows with `qtrs > 4`, currently ~0.01%.
+     Investigate above 0.1%. Flag for review, never reject.
 
 `qtrs` states the number of quarters a value spans; `ddate` is the
 period end. Distribution across 3,832,977 fact rows:
@@ -192,6 +251,8 @@ prospectively.
 
 ## F9 — Custom tags dominate the dictionary but not the data
 
+ **Discovery.**
+
 Joining `num` to `tag` on (`tag`, `version`):
 
 | tag class | rows      | % of rows | distinct tag names |
@@ -218,6 +279,11 @@ the modelled layer — restricting to standard tags excludes 92% of
 dictionary entries at a cost of 8.43% of reported values.
 
 ## F10 — Duration concepts reported as instants
+
+**Monitor.** `iord = 'D'` with `qtrs = 0`, currently 0.65% of
+     standard-tag rows. Investigate above 1%. A defect, but a persistent
+     one — asserting it would fail every build, which is the F4 failure mode.
+
 
 Cross-checking each fact's `qtrs` against its tag's declared `iord`,
 restricted to standard tags:
@@ -257,6 +323,8 @@ zero-valued is not yet measured.
 
 ## F11 — Referential integrity: `num` to `tag`
 
+**Assertion.** Zero unmatched rows on the (`tag`, `version`) join.
+
 A left join from `num` to `tag` on (`tag`, `version`) produced no
 unmatched rows. Every tag referenced in the fact table resolves to a
 dictionary entry.
@@ -266,6 +334,11 @@ the left join was chosen specifically so that unmatched rows would be
 counted rather than silently dropped.
 
 ## F12 — Primary key not unique in dimensional detail
+
+**Assertion** on the consolidated population — primary key unique
+     where `segments is null`, zero exceptions.
+**Monitor** on the full population — ~100 rows/quarter, routing to
+     one filer. Actionable for remediation, not a build failure.
 
 The documented primary key of `num` is (`adsh`, `tag`, `version`,
 `ddate`, `qtrs`, `uom`, `segments`, `coreg`). Grouping on all eight
@@ -311,6 +384,10 @@ that filing has not been verified.
 
 ## F13 — The dataset spans multiple taxonomies
 
+**Discovery.** Scope decision: `version like 'us-gaap/%'`.
+Derived assertion: a taxonomy family outside the known set fails the
+     build, because the scope filter would otherwise drop it silently.
+
 `custom = 0` means a tag belongs to a recognised taxonomy. It does not
 mean us-gaap. Grouping standard-tag fact rows by taxonomy family:
 
@@ -339,6 +416,10 @@ exclusion is a scoping decision, recorded here so that IFRS filers are
 not later reported as defective.
 
 ## F14 — Facts exist at two levels: consolidated and dimensional
+
+**Discovery.** Scope decision: `segments is null`.
+Derived assertion: mart grain unique under that filter.
+Derived monitor: `Revenues` coverage at 32.5%.
 
 The `segments` column carries the dimensional breakdown of a value
 (by business segment, equity component, counterparty, geography). Rows

@@ -1,76 +1,107 @@
-# AI Governance - SEC Data Quality
+# SEC Governed Pipeline
 
-An AI governance case study: automated data quality rule generation
-on SEC financial statement data, with human oversight and documented
-evaluation.
+A data governance case study built on SEC financial filings. The pipeline
+is real; the governed subject is an agent that proposes data quality rules
+and must justify them against evidence.
 
-## Data
+Data: [SEC Financial Statement Data Sets](https://www.sec.gov/dera/data/financial-statement-data-sets.html),
+2025Q4. Stack: DuckDB, dbt, Python, GitHub Actions.
 
-Source: SEC Financial Statement Data Sets, quarterly bulk XBRL
-extracts from corporate filings.
-https://www.sec.gov/data-research/sec-markets-data/financial-statement-data-sets
+**Status:** in progress. Raw ingest and data scoping complete; dbt models
+and the agent loop in development.
 
-Current batch: 2025Q4 (four tab-separated files)
+## Setup
 
-| File    | Rows      | Contents                                    |
-|---------|-----------|---------------------------------------------|
-| sub     | 6,304     | One row per EDGAR submission                |
-| num     | 3,832,977 | Numeric facts from primary statements       |
-| pre     | 719,346   | Filer-assigned line item labels and order   |
-| tag     | 84,907    | Tags used, standard and custom              |
+Requires Python 3.12.
 
-Raw data is not committed - files are large and freely available
-from the source.
+```bash
+git clone https://github.com/awattal/sec-governed-pipeline.git
+cd sec-governed-pipeline
+python3.12 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
 
-### Reproducing
+## Building the database
 
-1. Download a quarterly ZIP from the SEC link above
-2. Place it in `data/landing/`
-3. Extract into `data/raw/<quarter>/`
-4. Move the ZIP to `data/archive/`
+The DuckDB file is not in version control — it is rebuilt from source data.
 
-### Directory structure
+1. Download a quarterly zip from the SEC link above.
+2. Extract it to `data/raw/<quarter>/`, e.g. `data/raw/2025q4/`. You should
+   have four files: `sub.txt`, `num.txt`, `tag.txt`, `pre.txt`.
+3. Run the ingest:
 
-data/
-  landing/    incoming ZIPs
-  raw/        extracted files, partitioned by quarter
-  archive/    processed ZIPs retained
+```bash
+python scripts/ingest.py 2025q4
+```
 
-- Separate folders per quarter to help identify batch and enable isloated run of each batch
-- Original ZIP kept as a reference copy to enable rebuild or integrity checks
+The script validates that all four files are present before touching the
+database, loads each into a table, and prints row counts by quarter.
 
-## Stack
+Re-running is safe. Each row carries a `quarter` column, and a re-run
+replaces only that quarter's rows — so quarters accumulate and no load is
+ever doubled.
 
-DuckDB, dbt, Dagster, GitHub Actions, Great Expectations,
-LLM-assisted rule generation.
+## Working with the database
 
-- **DuckDB** - single-file analytical database. No server or
-  credentials, so the project runs anywhere from a clone. SQL is
-  close enough to Snowflake or Postgres that the models port.
-- **dbt** - transformation layer. Models are version-controlled
-  SQL with dependencies, tests, and generated lineage, which makes
-  the pipeline reviewable rather than opaque.
-- **Dagster** - orchestration. Sequences ingestion, transformation,
-  and quality checks with run history and failure visibility.
-- **GitHub Actions** - CI. Runs tests on every change before it
-  merges, so no unvalidated transformation reaches the main branch.
-- **Great Expectations** - data quality suite. Declarative
-  expectations over critical data elements, with results captured
-  as exceptions rather than logs.
-- **LLM rule generation** - candidate DQ rules proposed from column
-  metadata and profiling, evaluated against a hand-built gold set.
-  Human review is a required step; no generated rule is applied
-  unreviewed.
+DuckDB permits a single writer. This repo ships a read-only editor
+connection in `.vscode/settings.json`:
 
-## Governance approach
+```jsonc
+{
+  "duckdb.databases": [
+    {
+      "alias": "sec",
+      "type": "file",
+      "path": "./data/sec.duckdb",
+      "attached": true,
+      "readOnly": true
+    }
+  ],
+  "duckdb.defaultDatabase": "sec"
+}
+```
 
+Read-only is deliberate, not a workaround. Every write to this database
+comes from a script in version control — `scripts/ingest.py` today, dbt
+models next. Undocumented manual mutation is the failure mode this project
+exists to argue against.
 
-## Status
+Because `sec` is the default database, queries in `analysis/` reference
+tables unqualified (`sub`, `num`) rather than `sec.sub`.
 
-- [x] Local environment and repository
-- [x] 2025Q4 data acquired and staged
-- [ ] DuckDB load with row count reconciliation
-- [ ] dbt models, tests, lineage
-- [ ] Orchestration and CI
-- [ ] Data quality suite
-- [ ] LLM rule generation and evaluation
+## Scope
+
+Two decisions constrain the modelled layer. Both are measured, not assumed.
+
+**us-gaap taxonomy only** (`version like 'us-gaap/%'`) — 98.18% of facts.
+Custom extension taxonomies are company-specific and not comparable across
+filers. See F13.
+
+**Consolidated facts only** (`segments is null`) — 41.15% of rows.
+Segment-level rows repeat the same tag at different reporting dimensions
+and would break the grain of the mart. See F14.
+
+Mart columns are selected from measured coverage rather than intuition.
+`Revenues`, for example, appears in only 32.5% of filings.
+
+## Findings
+
+[`analysis/FINDINGS.md`](analysis/FINDINGS.md) records what profiling and
+scoping established. Each finding is tagged:
+
+- **Discovery** — established once, informed a decision, does not recur.
+- **Assertion** — must hold on every refresh. Implemented as a dbt test;
+  a violation fails the build.
+- **Monitor** — tracked with a threshold. Movement is reported, not fatal.
+
+All findings were measured on 2025Q4.
+
+## Layout
+
+```
+analysis/    exploration, profiling and scoping SQL; FINDINGS.md
+data/raw/    source files, gitignored
+data/        sec.duckdb, gitignored
+scripts/     ingest and operational scripts
+```
