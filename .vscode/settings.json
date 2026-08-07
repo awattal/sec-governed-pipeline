@@ -12,7 +12,7 @@
             "alias": "sec",
             "type": "file",
             "path": "./data/sec.duckdb",
-            "attached": true,
+            "attached": false,
             "readOnly": true
         }
     ],

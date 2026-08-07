@@ -48,9 +48,10 @@ second batch establishes normal variation.
 
 ## F1: Date fields are stored and read as integers
 
-**Discovery.** Derived assertion: cast to DATE at the staging
-     boundary, fail the load on any uncastable value. This also covers
-     the calendar-validity gap left open below — 20250230 fails a cast.
+**Discovery.** Derived assertion: `period_end_date` and `filed_date` not
+null after the cast in `stg_submissions`. The cast returns null on an
+unparseable value rather than failing the load, so the not-null test is
+the control, not the cast itself. `changed_date` is excluded — see F15.
 
 **Documented:** `period`, `filed` and `changed` are DATE (yyyymmdd).
 
@@ -64,9 +65,13 @@ Nothing errors; the result is simply meaningless. Any downstream
 model computing timeliness on these columns is wrong without
 warning.
 
-**Proposed rule:** Cast to DATE in the staging layer and fail the
-load if any value cannot be cast. The type should be enforced at
-the boundary rather than assumed downstream.
+**Proposed rule:** Cast to DATE in the staging layer. Implemented in
+`stg_submissions` (7 Aug). The cast returns null on an unparseable value
+rather than raising, so a not-null test on `period_end_date` and
+`filed_date` is the control that surfaces a failure.
+
+**Resolved:** the same subtraction now returns filing lags of 17–55 days
+against a 30 September period end.
 
 ---
 
@@ -458,3 +463,21 @@ filings (32.5%), far below `Assets` at 6,266 (99.4%). Most filers use
 more specific revenue concepts. A mart column list assembled from
 intuition about which concepts "should" be present will produce sparse
 columns that read as missing data.
+
+## F15 — `changed` is null on 42% of filings
+
+**Discovery.**
+
+**Actual:** 2,660 of 6,304 submissions have no `changed` value. Column
+types in the raw table are BIGINT for all three date columns; the nulls
+are present in the source, not introduced by the staging cast — verified
+by comparing null counts either side of the model.
+
+**Assessment:** not a defect. `changed` records the date a submission was
+amended. Most filings are never amended, so absence is the expected case.
+
+**Implication:** `changed_date` cannot carry a not-null test, and a
+completeness metric that counts it as a missing value will report a 42%
+gap that does not exist. Recorded so this is not later raised as a data
+quality exception.
+

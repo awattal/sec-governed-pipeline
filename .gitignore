@@ -15,3 +15,13 @@ __pycache__/
 data/**
 !data/**/
 !data/**/.gitkeep
+*.duckdb
+
+
+# dbt build output and logs - regenerated on every run
+transform/target/
+transform/dbt_packages/
+transform/logs/
+logs/
+
+transform/.user.yml
