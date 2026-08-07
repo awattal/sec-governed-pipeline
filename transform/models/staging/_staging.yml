@@ -1,0 +1,80 @@
+version: 2
+
+models:
+  - name: stg_submissions
+    description: >
+      One row per SEC submission, 6,304 in 2025Q4. Cleans the raw sub
+      table: date columns cast from yyyymmdd integers to DATE (F1),
+      column list restricted to what the modelled layer consumes.
+      Flag columns are left as integers so the accepted-values tests
+      assert what the source actually contains rather than what a
+      boolean cast would have silently coerced (F2).
+    columns:
+
+      - name: adsh
+        description: Accession number. Unique identifier for a submission.
+        data_tests:
+          - unique
+          - not_null
+
+      - name: cik
+        description: Central Index Key. Persistent identifier for the filer.
+        data_tests:
+          - not_null
+
+      - name: registrant_name
+        description: Filer name as reported. Source column `name`.
+
+      - name: form_type
+        description: Submission type, e.g. 10-K, 10-Q, 20-F.
+        data_tests:
+          - not_null
+
+      - name: period_end_date
+        description: >
+          Balance sheet date. Cast from a yyyymmdd integer. The cast
+          returns null on an unparseable value rather than raising, so
+          this test is the control that surfaces a failure (F1).
+        data_tests:
+          - not_null
+
+      - name: filed_date
+        description: >
+          Date the submission was accepted by EDGAR. Cast from a
+          yyyymmdd integer. Same control as period_end_date (F1).
+        data_tests:
+          - not_null
+
+      - name: changed_date
+        description: >
+          Date the submission was amended. Null on 2,660 of 6,304
+          filings — most are never amended, so absence is the expected
+          case and no not-null test applies (F15).
+
+      - name: wksi
+        description: Well-known seasoned issuer flag. 1 or 0.
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [0, 1]
+
+      - name: prevrpt
+        description: Previous report flag — submission was subsequently amended. 1 or 0.
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [0, 1]
+
+      - name: detail
+        description: Indicates the submission has quantitative disclosures beyond the primary statements. 1 or 0.
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [0, 1]
+
+      - name: quarter
+        description: >
+          Source batch this row arrived in, e.g. 2025q4. Added by
+          scripts/ingest.py. Provenance, not source data.
+        data_tests:
+          - not_null

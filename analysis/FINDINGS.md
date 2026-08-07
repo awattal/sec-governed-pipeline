@@ -24,7 +24,7 @@ Each finding is tagged by what it becomes downstream.
 
 | Finding | Tag | Becomes |
 |---------|-----|---------|
-| F1  | Discovery | Assertion: `period`, `filed`, `changed` cast to DATE; load fails on any uncastable value |
+| F1  | Discovery | Assertion: `period_end_date` and `filed_date` not null in staging |
 | F2  | Assertion | `wksi`, `prevrpt`, `detail` accept only {0, 1} |
 | F3  | Discovery | — (F1's cast subsumes the corrected check) |
 | F4  | Monitor   | Custom share of dictionary entries; currently 91.4% |
@@ -40,6 +40,10 @@ Each finding is tagged by what it becomes downstream.
 | F13 | Discovery | Assertion: taxonomy family within {us-gaap, ifrs, us-gaap-ebp, srt, dei} |
 | F14 | Discovery | Assertion: mart grain unique with `segments is null` |
 | F14 | Monitor   | `Revenues` filing coverage; currently 32.5% |
+| F15 | Discovery | — |
+| F16 | Assertion | Consumers branch on status before failures |
+| F17 | Assertion | Filter run_results.json by unique_id prefix |
+| F18 | Discovery | — |
 
 Thresholds are initial values set from 2025Q4 and will be revised once a
 second batch establishes normal variation.
@@ -480,4 +484,62 @@ amended. Most filings are never amended, so absence is the expected case.
 completeness metric that counts it as a missing value will report a 42%
 gap that does not exist. Recorded so this is not later raised as a data
 quality exception.
+
+Findings F1–F15 concern the SEC data. F16 onward concern the tooling —
+recorded because a control is only as trustworthy as the mechanism that
+reports it, and the same class of silent failure appears in both.
+
+## F16 — An errored test reports zero failures
+
+**Observed:** With `profiles.yml` removed, `dbt test` cannot connect to
+the database. The test does not execute. `run_results.json` records
+`status: error` and `failures: 0`, and the parser reports
+`ERROR not_null_stg_submissions_adsh failures=0`.
+
+**Impact:** A caller branching on the failure count alone cannot
+distinguish "the rule ran and found nothing wrong" from "the rule never
+ran." Both present as zero. An agent judging rule quality on failure
+counts would conclude the data is clean on the basis of a test that
+never touched it.
+
+**Why this is recorded:** This is F3 in a different layer. The output is
+well-formed, no exception is raised, and the number is plausible. The
+only signal is a status field that a count-based check does not read.
+
+**Assertion.** Any consumer of test results must branch on `status`
+before `failures`. Only `pass` and `fail` are conclusive; `error` and
+`skipped` mean the question was not answered. To be enforced by a
+`conclusive` property on `TestResult` rather than by convention at each
+call site.
+
+## F17 — `run_results.json` contents depend on the invoking command
+
+**Observed:** `dbt build` writes both model and test nodes to
+`run_results.json`. `dbt test` writes test nodes only. The file is
+overwritten on each invocation.
+
+**Impact:** Model and test nodes use different status vocabularies —
+`success` against `pass` — and models carry `failures: null`. A parser
+that assumes a single node type produces wrong results depending on
+which command last ran, with no error.
+
+**Assertion.** Filter on `unique_id` prefix before parsing. Implemented
+in `scripts/run_dbt_test.py`.
+
+## F18 — `accepted_values` compares across types
+
+**Observed:** The `accepted_values` test on `wksi`, `prevrpt` and
+`detail` compiles to `where value_field not in ('0','1')` — quoted
+string literals against BIGINT columns. The test passes because DuckDB
+coerces implicitly.
+
+**Assessment:** Correct here, fragile as a pattern. The generated SQL
+does not reflect the column's actual type, and behaviour depends on the
+adapter's coercion rules rather than on anything declared.
+
+**Discovery.** Relevant when the agent generates tests: a rule that
+passes may be passing for reasons unrelated to what it appears to
+assert.
+
+
 
