@@ -294,9 +294,11 @@ dictionary entries at a cost of 8.43% of reported values.
 
 ## F10 — Duration concepts reported as instants
 
-**Monitor.** `iord = 'D'` with `qtrs = 0`. Rate and threshold restated
-against the modelled scope in F22 — the figures below predate F13/F14
-and describe a wider population.
+**Monitor.** `iord = 'D'` with `qtrs = 0`. Measured on the governed
+population at 0.246% (3,425 of 1,393,562). Tolerance 0.5%, held in
+`config/monitors.yml` and applied by `scripts/run_dbt_test.py` — the
+dbt test measures and never judges. The figures below predate F13/F14
+and describe a wider population; see F22.
 
 Each fact's `qtrs` cross-checked against its tag's declared `iord`,
 standard tags only:
@@ -326,6 +328,17 @@ enforce.
 
 **Open:** sampled violations include AUD values and several exact
 zeros. Whether violations skew zero-valued is unmeasured.
+
+**Implemented.** `transform/tests/f10_duration_reported_as_instant.sql`,
+a singular test joining `int_num_in_scope` to `stg_tag`. Severity is
+warn with no threshold: the test reports its count on every run and
+never blocks the build. Whether that count is acceptable is decided
+against the configured rate, outside dbt.
+
+The separation is deliberate. A row-count threshold written into a
+test is calibrated to the volume it was written at and drifts
+silently as volume changes — the failure F22 documents, in a
+different form. A rate held in configuration stays meaningful.
 
 ## F11 — Referential integrity: `num` to `tag`
 
@@ -640,6 +653,8 @@ Second: if staging applied the scope filters rather than flagging
 rows, 19,195 violations would leave the pipeline entirely. The dirtier
 population would become untestable precisely because it was excluded.
 This is the empirical case for flags over filters in staging.
+
+---
 
 ## F23 — The documented key fails on 50 out-of-scope groups
 
