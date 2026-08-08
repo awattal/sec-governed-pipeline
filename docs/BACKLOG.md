@@ -10,6 +10,17 @@ Open items, newest first. Findings go in FINDINGS.md; this is work.
 - stg_num materialisation: measured. 14 tests in 3.4s as a view,
   key test 0.33s across 3.8M rows. Staying a view; revisit only if
   the agent loop shows it matters.
+- run_test returns every node in run_results.json, not just the
+  selector's. Selecting a model pulls in tests that merely reference
+  it (F10 appears under stg_tag). The agent needs to know which
+  result answers its question — filter or tag by requested selector.
+- The script discards dbt's stdout, so a compilation error surfaces
+  as `NO DATA` with no reason. Capture stdout on non-conclusive
+  results.
+- store_failures limit removed: dbt applies `limit` to the test
+  query itself, capping the reported count, not just stored rows.
+  F10 reported 500 instead of 3,425. Needs a different guard against
+  unbounded failure tables from generated rules.
 
 ## Documentation
 - README: `dbt deps` is a required setup step
@@ -29,6 +40,11 @@ Open items, newest first. Findings go in FINDINGS.md; this is work.
   as systemic, but all 50 are one filer's dimensional rows. The count
   alone points at the wrong conclusion. Worked example for the W5
   write-up on why the agent needs sample rows, not counts.
+- store_failures limit removed: dbt applies `limit` to the test
+  query itself, so it caps the reported failure count, not just the
+  stored rows. F10 reported 500 instead of 3,425. Need a different
+  guard against unbounded failure tables from generated rules —
+  possibly a limit inside the test SQL, or post-run cleanup.
 
 ## Deferred by decision
 - Makefile for the transform/ vs repo-root directory split (W3)
@@ -62,5 +78,9 @@ governed path.
   Thresholds and drift detection wait for Q3 — a rate with no trend
   behind it cannot be monitored, but it can be recorded, and it has
   to be recorded before the moment you want to look back at it
+
+
+
+
 
   

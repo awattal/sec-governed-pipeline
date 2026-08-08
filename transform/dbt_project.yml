@@ -38,4 +38,3 @@ models:
 
 tests:
   +store_failures: true
-  +limit: 500
