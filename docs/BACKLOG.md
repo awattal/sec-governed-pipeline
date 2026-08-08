@@ -1,86 +1,75 @@
 # Backlog
 
-Open items, newest first. Findings go in FINDINGS.md; this is work.
+Open work items. Findings go in FINDINGS.md; this is work owed.
 
-## Tests
-- `equal_rowcount` on stg_num once built
-- Measure `dbt test` timing against stg_num as a view; switch to
-  `materialized: 'table'` only if the number justifies it. Decision
-  deferred deliberately — record the measurement, not just the choice.
-- stg_num materialisation: measured. 14 tests in 3.4s as a view,
-  key test 0.33s across 3.8M rows. Staying a view; revisit only if
-  the agent loop shows it matters.
-- run_test returns every node in run_results.json, not just the
+## Blocking W3
+
+The agent loop can't be trusted without these.
+
+- **Severity definitions.** Every violation currently counts as one.
+  3,425 F10 violations in shell companies and 3,425 in large filers
+  are the same number to the pipeline. `value` and filer size are
+  available to classify on. Decide before the agent generates rules —
+  retrofitting means regenerating everything it has produced.
+- **The agent's action space.** If the agent emits free-form SQL it
+  cannot be evaluated, diffed or bounded. A constrained structure —
+  test type from a fixed vocabulary, column, parameters — is
+  reviewable and comparable across runs. Decide deliberately rather
+  than letting the prompt decide it.
+- **Run history table**, carrying a population dimension (in scope /
+  out of scope). Everything downstream depends on it: drift, batch
+  comparison, out-of-scope recording, and the agent's own results.
+- `run_test` returns every node in `run_results.json`, not just the
   selector's. Selecting a model pulls in tests that merely reference
-  it (F10 appears under stg_tag). The agent needs to know which
-  result answers its question — filter or tag by requested selector.
+  it. The agent asks about one rule and gets ten results with no way
+  to know which answers its question.
 - The script discards dbt's stdout, so a compilation error surfaces
-  as `NO DATA` with no reason. Capture stdout on non-conclusive
-  results.
-- store_failures limit removed: dbt applies `limit` to the test
-  query itself, capping the reported count, not just stored rows.
-  F10 reported 500 instead of 3,425. Needs a different guard against
-  unbounded failure tables from generated rules.
+  as `NO DATA` with no reason. The difference between an agent that
+  can self-correct and one that stalls.
 
-## Documentation
-- README: `dbt deps` is a required setup step
-- README: VS Code DuckDB extension holds an exclusive lock regardless
-  of readOnly — disconnect before any dbt run
-- README: data/sec.duckdb must be built locally, it is not committed
-- README: scope statement citing F13/F19/F14, pointer to FINDINGS.md
-- `_staging.yml`: taxonomy column description should note that custom
-  tags carry an accession number, not a taxonomy name (91% of rows)
-- `_sources.yml`: tag source documents 4 columns; stg_tag now consumes
-  crdr and datatype, which are undocumented
+## Do when convenient
 
-## Observations not yet written up
-- 6,003 us-gaap tags in the dictionary vs 4,030 used in num — a third
-  of the standard vocabulary is unused this quarter. Same shape as F9.
-- store_failures earned its place immediately: `Got 50 results` reads
-  as systemic, but all 50 are one filer's dimensional rows. The count
-  alone points at the wrong conclusion. Worked example for the W5
-  write-up on why the agent needs sample rows, not counts.
-- store_failures limit removed: dbt applies `limit` to the test
-  query itself, so it caps the reported failure count, not just the
-  stored rows. F10 reported 500 instead of 3,425. Need a different
-  guard against unbounded failure tables from generated rules —
-  possibly a limit inside the test SQL, or post-run cleanup.
+- `store_failures` has no row limit. dbt's `limit` caps the reported
+  count rather than the stored rows, so it was removed. A generated
+  rule failing on millions would write millions — needs a limit
+  inside the test SQL, or post-run cleanup. Becomes urgent when the
+  agent starts generating.
+- Makefile for the `transform/` vs repo-root split.
+- `_staging.yml`: the taxonomy column description should note that
+  custom tags carry an accession number, not a taxonomy name.
+- `_sources.yml`: the tag source documents four columns; `stg_tag`
+  now consumes `crdr` and `datatype`, which are undocumented.
 
-## Deferred by decision
-- Makefile for the transform/ vs repo-root directory split (W3)
-- store_failures on generated tests (with the F10 test)
-- `conclusive` property on TestResult (F16, with the F10 test)
-- Run history / rule registry carries a population dimension:
-  governed (us-gaap consolidated) vs observed (everything else).
-  Same rule definition runs against both; only governed results
-  carry exceptions, thresholds and drift tracking. Registry needs
-  a field for which populations a rule applies to.
-- Multi-quarter load and point-in-time vs current-view (W5)
-- stg_num: consider a derived `is_in_scope` column (is_us_gaap and
-  is_consolidated) so test `where` configs reference one flag rather
-  than repeating the conjunction. Decide before the F10 test.
+## Parked
 
-  ## Out-of-scope monitoring — deferred, not dropped
+- **Out-of-scope monitoring.** Out-of-scope rows remain in staging by
+  design (F22) but are untested. Recording starts with the run
+  history table above — out-of-scope tests at warn severity, results
+  captured with a population column. Thresholds and drift wait for a
+  second quarter: a rate with no trend behind it cannot be monitored,
+  but it can be recorded, and it has to be recorded before the moment
+  you want to look back at it. Mechanism undecided — warn-severity
+  tests, a separate `int_num_out_of_scope` model, or reporting off
+  the run history.
+- **Multi-quarter load, and point-in-time vs current-view mart
+  semantics.** W5. The design decision the second quarter forces.
+- **F24 candidate:** 6,003 us-gaap tags in the dictionary against
+  4,030 used in `num` — a third of the standard vocabulary is unused
+  this quarter. Same shape as F9. Promote or drop; "not yet written
+  up" is where observations go to die.
 
-The pipeline governs us-gaap consolidated facts. Out-of-scope rows
-remain in staging by design (F22) but are currently untested and
-unmonitored. Decided to defer rather than build alongside the
-governed path.
+## Write-up material
 
-- Decide the mechanism: warn-severity tests, a separate
-  int_num_out_of_scope model, or reporting off the run history
-- Key uniqueness on out-of-scope rows: 50 groups, one filer (F23).
-  Test removed from stg_num rather than kept as a warning
-- F10 out-of-scope rate is 0.935% vs 0.246% governed (F22) — the
-  observational series that would show drift
-- Recording starts W3 with the run history table: out-of-scope tests
-  run at warn severity, results captured with a population column.
-  Thresholds and drift detection wait for Q3 — a rate with no trend
-  behind it cannot be monitored, but it can be recorded, and it has
-  to be recorded before the moment you want to look back at it
+Not work. Notes for the W5 failure analysis.
 
-
-
-
-
-  
+- `store_failures` earned its place immediately: `Got 50 results`
+  reads as systemic, but all 50 were one filer's dimensional rows.
+  The count alone points at the wrong conclusion — a worked example
+  of why a counting test is insufficient input for an agent.
+- The threshold macro that could not work. dbt resolves test configs
+  at parse time, so the macro returned its placeholder and `warn_if`
+  was silently `> 0` for a run. Caught only by checking the count
+  directly rather than trusting a green result.
+- `_display_name` returned an empty string for singular tests, which
+  silently disabled the monitor lookup. Plausible-looking output, no
+  error. F5's shape again.
