@@ -78,3 +78,81 @@ models:
           scripts/ingest.py. Provenance, not source data.
         data_tests:
           - not_null
+
+    data_tests:
+      - dbt_utils.equal_rowcount:
+          arguments:
+            compare_model: source('sec_raw', 'sub')
+
+  - name: stg_tag
+    description: >
+      Dictionary of reporting concepts, one row per (tag, version).
+      1:1 with source — no scope filtering, so excluded taxonomies
+      remain testable (F21). Integer flags cast to boolean; the
+      domain check moves to the source declaration (F19).
+    columns:
+
+      - name: tag
+        description: Concept name. Not unique on its own.
+        data_tests:
+          - not_null
+
+      - name: version
+        description: >
+          Taxonomy identifier, e.g. us-gaap/2025. Carries the filer's
+          accession number when the tag is filer-defined.
+        data_tests:
+          - not_null
+
+      - name: taxonomy
+        description: >
+          Derived. Prefix of version, e.g. us-gaap, ifrs, srt. Added
+          because scope filtering on a string pattern silently
+          excluded us-gaap-ebp (F19).
+        data_tests:
+          - not_null
+
+      - name: is_custom
+        description: True if filer-defined. Source column `custom`, 0/1.
+        data_tests:
+          - not_null
+
+      - name: is_abstract
+        description: >
+          True if the concept is a grouping header carrying no value.
+          Source column `abstract`, 0/1.
+        data_tests:
+          - not_null
+
+      - name: period_type
+        description: >
+          I for instant, D for duration. Source column `iord`. The
+          column F10 turns on — a duration concept reported with
+          qtrs = 0 is the defect.
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['I', 'D']
+
+      - name: balance_type
+        description: Credit or debit. Source column `crdr`. Null on non-monetary concepts.
+
+      - name: datatype
+        description: XBRL datatype, e.g. monetary, shares, percent.
+
+      - name: label
+        description: Human-readable concept label. Source column `tlabel`.
+
+      - name: definition
+        description: Full concept definition. Source column `doc`.
+
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - tag
+              - version
+      - dbt_utils.equal_rowcount:
+          arguments:
+            compare_model: source('sec_raw', 'tag')
