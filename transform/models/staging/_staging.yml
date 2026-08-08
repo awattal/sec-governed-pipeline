@@ -156,3 +156,100 @@ models:
       - dbt_utils.equal_rowcount:
           arguments:
             compare_model: source('sec_raw', 'tag')
+
+  - name: stg_num
+    description: >
+      Reported numeric facts, 1:1 with source at 3,832,977 rows.
+      Scope expressed as flags rather than filters (F22). ddate is
+      retained alongside its cast because the raw integer is part of
+      the documented key.
+    columns:
+
+      - name: adsh
+        description: Accession number. Foreign key to stg_submissions.
+        data_tests:
+          - not_null
+
+      - name: tag
+        description: Concept name. Foreign key to stg_tag with version.
+        data_tests:
+          - not_null
+
+      - name: version
+        description: >
+          Taxonomy identifier, or the filer's accession number when
+          the tag is filer-defined.
+        data_tests:
+          - not_null
+
+      - name: taxonomy
+        description: >
+          Derived from the version prefix. Holds an accession number,
+          not a taxonomy name, for filer-defined tags (~8% of rows).
+        data_tests:
+          - not_null
+
+      - name: coreg
+        description: >
+          Coregistrant. Null on all but 39,748 rows, and never
+          populated without segments also being populated (F20).
+
+      - name: segments
+        description: >
+          Dimensional breakdown. Null means a consolidated total.
+          Part of the key -- its omission caused the PK overstatement.
+
+      - name: ddate
+        description: Period end date as a yyyymmdd integer. Part of the key.
+        data_tests:
+          - not_null
+
+      - name: period_end_date
+        description: >
+          ddate cast to DATE. The cast returns null on an unparseable
+          value rather than raising, so this test is the control (F1).
+        data_tests:
+          - not_null
+
+      - name: qtrs
+        description: >
+          Quarters the value spans. 0 is an instant. A duration
+          concept reported with qtrs = 0 is the F10 defect.
+        data_tests:
+          - not_null
+
+      - name: uom
+        description: Unit of measure. Part of the key.
+        data_tests:
+          - not_null
+
+      - name: value
+        description: The reported figure. Null where withheld or footnoted.
+
+      - name: is_us_gaap
+        description: taxonomy = 'us-gaap'. Excludes us-gaap-ebp (F19).
+        data_tests:
+          - not_null
+
+      - name: is_consolidated
+        description: segments is null. The F14 scope axis.
+        data_tests:
+          - not_null
+
+      - name: is_parent_only
+        description: >
+          coreg is null. Redundant against is_consolidated in 2025Q4
+          (F20), carried to support the assertion that the
+          relationship holds in future quarters.
+        data_tests:
+          - not_null
+
+      - name: quarter
+        description: Source batch. Provenance, added by scripts/ingest.py.
+        data_tests:
+          - not_null
+
+    data_tests:
+      - dbt_utils.equal_rowcount:
+          arguments:
+            compare_model: source('sec_raw', 'num')

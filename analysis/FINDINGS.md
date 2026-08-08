@@ -44,6 +44,11 @@ Each finding is tagged by what it becomes downstream.
 | F16 | Assertion | Consumers branch on status before failures |
 | F17 | Assertion | Filter run_results.json by unique_id prefix |
 | F18 | Discovery | — |
+| F19 | Discovery | Assertion: version scope is `us-gaap/%` |
+| F20 | Discovery | Assertion: `coreg` populated implies `segments` populated |
+| F21 | Discovery | — |
+| F22 | Monitor   | Restates F10's threshold against the modelled scope |
+| F23 | Discovery | In-scope assertion: `num` key holds on int_num_in_scope |
 
 Thresholds are initial values set from 2025Q4 and will be revised once a
 second batch establishes normal variation.
@@ -635,4 +640,67 @@ Second: if staging applied the scope filters rather than flagging
 rows, 19,195 violations would leave the pipeline entirely. The dirtier
 population would become untestable precisely because it was excluded.
 This is the empirical case for flags over filters in staging.
+
+## F23 — The documented key fails on 50 out-of-scope groups
+
+**Discovery.**
+
+`dbt_utils.unique_combination_of_columns` on the documented key
+(`adsh`, `tag`, `version`, `ddate`, `qtrs`, `uom`, `coreg`,
+`segments`) across all 3,832,977 rows returns 50 duplicated
+combinations.
+
+All 50 are dimensional. All 50 come from a single filing,
+`0001918712-25-000092`. Every group contains exactly 2 rows carrying
+2 distinct values — not redundant duplication, but two different
+reported figures sharing one key.
+
+100 rows, 0.0026% of the table. The in-scope population — us-gaap,
+consolidated — is unaffected, confirming the Part 2 result rather
+than contradicting it.
+
+The colliding rows are foreign currency derivative contracts whose
+`segments` strings carry a trailing instance number. Rows that
+collide share that number and still differ in value, so the
+disambiguation the filer applied is insufficient or a dimension is
+being lost upstream. The uniform group size of exactly 2 suggests a
+mechanical cause rather than scattered error. Untested; stated as a
+hypothesis.
+
+**Assessment:** defect in the source, not the pipeline. Two values on
+one key means the grain is unrecoverable — aggregation double-counts,
+joins fan out. The SEC's key is correct; this filing produces
+dimensional rows it cannot separate.
+
+Scoping these rows out (F14) is a population decision taken during
+scoping, before this finding existed. That they are also defective is
+separate. Conflating the two would imply the scope was drawn to avoid
+a problem.
+
+**Implication:** the scope filter moves into a model rather than into
+test configuration. `int_num_in_scope` applies `is_us_gaap and
+is_consolidated` in one place; tests attach to that model and carry no
+scope condition. The key test passes there at zero violations and is
+asserted — a duplicate key in the governed layer makes every
+downstream figure suspect, so it stops the build.
+
+The unscoped test was removed from `stg_num` rather than kept at warn
+severity. Per F4, a control that fires on every batch is switched off
+rather than acted on, and a permanent warning is the same failure one
+step removed. The 50 groups remain in staging and remain queryable;
+what is absent is a control over them.
+
+Monitoring the out-of-scope population is deferred; recording is not.
+Out-of-scope test results are captured in the run history from W3
+onward, so that a second quarter arrives with a baseline already in
+place rather than becoming the first observation. Thresholds and
+drift detection follow once there is a trend to detect. Recorded in
+docs/BACKLOG.md.
+
+**Note on detection.** The test reported `Got 50 results` and nothing
+else. Read alone, that count suggests a systemic key defect. The
+rows show one filing. `store_failures` was enabled to diagnose this
+failure and the count alone pointed at the wrong conclusion — a
+worked example of why a counting test is insufficient input for an
+agent deciding whether a rule or the data is at fault.
 
