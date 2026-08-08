@@ -33,5 +33,8 @@ models:
   transform:
     staging:
       +materialized: view
-    marts:
-      +materialized: table
+    intermediate:
+      +materialized: view
+
+tests:
+  +store_failures: true

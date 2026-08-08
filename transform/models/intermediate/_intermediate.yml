@@ -1,0 +1,22 @@
+version: 2
+
+models:
+  - name: int_num_in_scope
+    description: >
+      The governed population: us-gaap consolidated facts, 1,393,562
+      rows in 2025Q4. The scope filter lives here and nowhere else —
+      downstream models and tests inherit scope from this model rather
+      than restating it (F19, F14).
+
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - adsh
+              - tag
+              - version
+              - ddate
+              - qtrs
+              - uom
+              - coreg
+              - segments

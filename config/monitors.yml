@@ -1,0 +1,18 @@
+# Monitored rules and their tolerances.
+#
+# dbt measures; this file decides what the measurement means. A test
+# listed here reports its count on every run and never blocks the
+# build - the rate below determines whether that count is acceptable.
+#
+# Keyed by dbt test name. `population` is the model the rate is
+# measured against.
+
+monitors:
+  f10_duration_reported_as_instant:
+    finding: F10
+    rate: 0.005
+    population: int_num_in_scope
+    description: >
+      Duration concepts reported with qtrs = 0. Persistent defect,
+      monitored not asserted (F4). Rate restated against the governed
+      population in F22.
