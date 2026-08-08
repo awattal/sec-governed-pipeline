@@ -235,3 +235,149 @@ where n.tag in ('Assets', 'Liabilities', 'StockholdersEquity',
                 'Revenues', 'NetIncomeLoss')
 group by 1
 order by 1;
+
+-- ------------------------------------------------------------
+-- Q12. Scope attrition and F10 survival.
+--
+-- Filters are cumulative: each stage is a subset of the one above,
+-- so row_count reads as an attrition sequence.
+--
+-- violation_pct matters more than violations. A rising rate means
+-- the defect concentrates in the modelled scope. A collapsing rate
+-- means it lives in the rows being excluded, and the staging test
+-- built on F10 would have little left to catch.
+--
+-- Inner join is safe per F11 (zero unmatched rows on a left join).
+-- Stage 0 re-verifies that: it must return 3,832,977.
+-- ------------------------------------------------------------
+with flagged as materialized (
+    select
+        n.tag,
+        (t.custom = 0)                as is_standard,
+        (n.version like 'us-gaap/%')  as is_us_gaap,
+        (n.segments is null)          as is_consolidated,
+        (n.coreg is null)             as is_parent_only,
+        (t.iord = 'D' and n.qtrs = 0) as is_violation
+    from num n
+    join tag t
+           on t.tag     = n.tag
+          and t.version = n.version
+),
+
+stages as (
+    select '0. all num rows'                                as scope,
+           count(*)                                         as row_count,
+           count(*) filter (where is_violation)             as violations,
+           count(distinct tag) filter (where is_violation)  as violating_tags
+    from flagged
+
+    union all
+
+    select '1. + standard tags',
+           count(*),
+           count(*) filter (where is_violation),
+           count(distinct tag) filter (where is_violation)
+    from flagged
+    where is_standard
+
+    union all
+
+    select '2. + us-gaap only',
+           count(*),
+           count(*) filter (where is_violation),
+           count(distinct tag) filter (where is_violation)
+    from flagged
+    where is_standard
+      and is_us_gaap
+
+    union all
+
+    select '3. + consolidated',
+           count(*),
+           count(*) filter (where is_violation),
+           count(distinct tag) filter (where is_violation)
+    from flagged
+    where is_standard
+      and is_us_gaap
+      and is_consolidated
+
+    union all
+
+    select '4. + parent only',
+           count(*),
+           count(*) filter (where is_violation),
+           count(distinct tag) filter (where is_violation)
+    from flagged
+    where is_standard
+      and is_us_gaap
+      and is_consolidated
+      and is_parent_only
+)
+
+select scope,
+       row_count,
+       violations,
+       violating_tags,
+       round(100.0 * violations / nullif(row_count, 0), 3) as violation_pct
+from stages
+order by scope;
+
+-- ------------------------------------------------------------
+-- Q13. Are `custom = 0` and us-gaap the same filter?
+--
+-- If the (custom = 1, us-gaap = true) cell is empty, us-gaap
+-- implies standard and the scope has two axes, not three.
+-- Asserted in conversation; measured here.
+-- ------------------------------------------------------------
+select t.custom,
+       (n.version like 'us-gaap/%') as is_us_gaap,
+       count(*)                     as row_count,
+       count(distinct n.tag)        as distinct_tags
+from num n
+join tag t
+       on t.tag     = n.tag
+      and t.version = n.version
+group by 1, 2
+order by 1, 2;
+
+-- ------------------------------------------------------------
+-- Q14. Does `coreg` add anything beyond `segments`?
+--
+-- Q12 stages 3 and 4 were identical, so coreg is redundant within
+-- the modelled scope. This establishes why: either coreg is unused
+-- entirely, or a populated coreg always coincides with a populated
+-- segments (a coregistrant fact is always dimensional).
+--
+-- No join: both columns are on num. Run on the full table — scoping
+-- to consolidated rows would condition on segments, one of the two
+-- variables under test.
+-- ------------------------------------------------------------
+select (coreg is null)    as coreg_is_null,
+       (segments is null) as segments_is_null,
+       count(*)           as row_count
+from num
+group by 1, 2
+order by 1, 2;
+
+-- ------------------------------------------------------------
+-- Q15. Which taxonomies make up the standard non-us-gaap rows?
+--
+-- Q13 isolated 63,783 rows / 834 tags that are standard but not
+-- us-gaap. F13 describes this population as IFRS. This tests that
+-- description.
+--
+-- row_count sums to 63,783. distinct_tags will not necessarily sum
+-- to 834 — a tag name can appear in more than one taxonomy and is
+-- counted once per group. Reconcile on rows.
+-- ------------------------------------------------------------
+select split_part(n.version, '/', 1) as taxonomy,
+       count(*)                      as row_count,
+       count(distinct n.tag)         as distinct_tags
+from num n
+join tag t
+       on t.tag     = n.tag
+      and t.version = n.version
+where t.custom = 0
+  and n.version not like 'us-gaap/%'
+group by 1
+order by row_count desc;

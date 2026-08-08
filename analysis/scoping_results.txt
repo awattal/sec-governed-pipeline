@@ -22,13 +22,13 @@
 │ 20-F/A  │       7 │           4 │         5.9 │          10 │
 │ F-4/A   │       6 │           5 │         8.7 │          15 │
 │ 10-12G  │       3 │           2 │         7.0 │          10 │
-│ 10-KT   │       2 │           7 │         9.5 │          12 │
 │ 11-K/A  │       2 │           2 │         2.0 │           2 │
+│ 10-KT   │       2 │           7 │         9.5 │          12 │
+│ 8-K/A   │       1 │          20 │        20.0 │          20 │
 │ 424B3   │       1 │          12 │        12.0 │          12 │
 │ S-4 POS │       1 │           7 │         7.0 │           7 │
-│ 8-K/A   │       1 │          20 │        20.0 │          20 │
-│ SP 15D2 │       1 │           6 │         6.0 │           6 │
 │ F-3     │       1 │           7 │         7.0 │           7 │
+│ SP 15D2 │       1 │           6 │         6.0 │           6 │
 └─────────┴─────────┴─────────────┴─────────────┴─────────────┘
   27 rows                                           5 columns
 ┌───────┬───────────┬─────────────┐
@@ -113,13 +113,13 @@
 │ AdjustmentToAdditionalPaidInCapitalConvertibleDebtInstrumentIssuedAtSubstantialPremium │ us-gaap/2025 │ NULL    │ D       │     0 │ 0001628280-25-046844 │ 20250430 │ USD     │  28200000.0 │
 │ AdjustmentsForGainsLossesOnDisposalOfFinancialAssets                                   │ ifrs/2024    │ NULL    │ D       │     0 │ 0001104659-25-105894 │ 20250228 │ AUD     │  -8000000.0 │
 │ AdjustmentsForInterestExpense                                                          │ ifrs/2024    │ NULL    │ D       │     0 │ 0001493152-25-023519 │ 20250531 │ USD     │      4000.0 │
-│ AdjustmentsRelatedToTaxWithholdingForShareBasedCompensation                            │ us-gaap/2025 │ NULL    │ D       │     0 │ 0001193125-25-277498 │ 20250331 │ USD     │    100000.0 │
-│ AdjustmentsRelatedToTaxWithholdingForShareBasedCompensation                            │ us-gaap/2025 │ NULL    │ D       │     0 │ 0001193125-25-277498 │ 20250930 │ USD     │    100000.0 │
 │ AdjustmentsRelatedToTaxWithholdingForShareBasedCompensation                            │ us-gaap/2025 │ NULL    │ D       │     0 │ 0001193125-25-277498 │ 20240430 │ USD     │    100000.0 │
-│ AdjustmentsRelatedToTaxWithholdingForShareBasedCompensation                            │ us-gaap/2025 │ NULL    │ D       │     0 │ 0001193125-25-277498 │ 20241231 │ USD     │    100000.0 │
-│ AdjustmentsRelatedToTaxWithholdingForShareBasedCompensation                            │ us-gaap/2025 │ NULL    │ D       │     0 │ 0001193125-25-277498 │ 20231231 │ USD     │    100000.0 │
-│ AdjustmentsRelatedToTaxWithholdingForShareBasedCompensation                            │ us-gaap/2025 │ NULL    │ D       │     0 │ 0001193125-25-277498 │ 20240630 │ USD     │    100000.0 │
 │ AdjustmentsRelatedToTaxWithholdingForShareBasedCompensation                            │ us-gaap/2025 │ NULL    │ D       │     0 │ 0001193125-25-277498 │ 20250630 │ USD     │    100000.0 │
+│ AdjustmentsRelatedToTaxWithholdingForShareBasedCompensation                            │ us-gaap/2025 │ NULL    │ D       │     0 │ 0001193125-25-277498 │ 20250331 │ USD     │    100000.0 │
+│ AdjustmentsRelatedToTaxWithholdingForShareBasedCompensation                            │ us-gaap/2025 │ NULL    │ D       │     0 │ 0001193125-25-277498 │ 20231231 │ USD     │    100000.0 │
+│ AdjustmentsRelatedToTaxWithholdingForShareBasedCompensation                            │ us-gaap/2025 │ NULL    │ D       │     0 │ 0001193125-25-277498 │ 20241231 │ USD     │    100000.0 │
+│ AdjustmentsRelatedToTaxWithholdingForShareBasedCompensation                            │ us-gaap/2025 │ NULL    │ D       │     0 │ 0001193125-25-277498 │ 20250930 │ USD     │    100000.0 │
+│ AdjustmentsRelatedToTaxWithholdingForShareBasedCompensation                            │ us-gaap/2025 │ NULL    │ D       │     0 │ 0001193125-25-277498 │ 20240630 │ USD     │    100000.0 │
 │ AdjustmentsRelatedToTaxWithholdingForShareBasedCompensation                            │ us-gaap/2025 │ NULL    │ D       │     0 │ 0001193125-25-277498 │ 20250430 │ USD     │    100000.0 │
 │ AdjustmentsRelatedToTaxWithholdingForShareBasedCompensation                            │ us-gaap/2025 │ NULL    │ D       │     0 │ 0001628280-25-049683 │ 20250731 │ USD     │ 411400000.0 │
 │ AdjustmentsRelatedToTaxWithholdingForShareBasedCompensation                            │ us-gaap/2024 │ NULL    │ D       │     0 │ 0001628280-25-049844 │ 20240331 │ USD     │    100000.0 │
@@ -127,10 +127,10 @@
 │ AdjustmentsRelatedToTaxWithholdingForShareBasedCompensation                            │ us-gaap/2025 │ NULL    │ D       │     0 │ 0001769628-25-000062 │ 20250331 │ USD     │  16000000.0 │
 │ AdjustmentsToAdditionalPaidInCapitalMarkToMarket                                       │ us-gaap/2025 │ NULL    │ D       │     0 │ 0001213900-25-109292 │ 20250531 │ USD     │   5313000.0 │
 │ AdjustmentsToAdditionalPaidInCapitalMarkToMarket                                       │ us-gaap/2025 │ NULL    │ D       │     0 │ 0001213900-25-109998 │ 20250630 │ USD     │   2024000.0 │
-│ AdjustmentsToAdditionalPaidInCapitalOther                                              │ us-gaap/2025 │ NULL    │ D       │     0 │ 0001185185-25-001785 │ 20250630 │ USD     │    177474.0 │
 │ AdjustmentsToAdditionalPaidInCapitalOther                                              │ us-gaap/2025 │ NULL    │ D       │     0 │ 0001185185-25-001785 │ 20250731 │ USD     │    142086.0 │
-│ AdjustmentsToAdditionalPaidInCapitalOther                                              │ us-gaap/2025 │ NULL    │ D       │     0 │ 0001185185-25-001785 │ 20250531 │ USD     │     12106.0 │
 │ AdjustmentsToAdditionalPaidInCapitalOther                                              │ us-gaap/2025 │ NULL    │ D       │     0 │ 0001185185-25-001785 │ 20250531 │ USD     │      6650.0 │
+│ AdjustmentsToAdditionalPaidInCapitalOther                                              │ us-gaap/2025 │ NULL    │ D       │     0 │ 0001185185-25-001785 │ 20250531 │ USD     │      6650.0 │
+│ AdjustmentsToAdditionalPaidInCapitalOther                                              │ us-gaap/2025 │ NULL    │ D       │     0 │ 0001185185-25-001785 │ 20250731 │ USD     │    142086.0 │
 └────────────────────────────────────────────────────────────────────────────────────────┴──────────────┴─────────┴─────────┴───────┴──────────────────────┴──────────┴─────────┴─────────────┘
   25 rows                                                                                                                                                                           9 columns
 ┌────────────────────┬────────────┬───────────────┐
@@ -173,3 +173,38 @@
 │ Revenues           │              7581 │            44107 │    2052 │
 │ StockholdersEquity │             28805 │           123777 │    5691 │
 └────────────────────┴───────────────────┴──────────────────┴─────────┘
+┌────────────────────┬───────────┬────────────┬────────────────┬───────────────┐
+│       scope        │ row_count │ violations │ violating_tags │ violation_pct │
+│      varchar       │   int64   │   int64    │     int64      │    double     │
+├────────────────────┼───────────┼────────────┼────────────────┼───────────────┤
+│ 0. all num rows    │   3832977 │      24814 │           1633 │         0.647 │
+│ 1. + standard tags │   3509813 │      22930 │            715 │         0.653 │
+│ 2. + us-gaap only  │   3446030 │      22620 │            655 │         0.656 │
+│ 3. + consolidated  │   1393562 │       3425 │            429 │         0.246 │
+│ 4. + parent only   │   1393562 │       3425 │            429 │         0.246 │
+└────────────────────┴───────────┴────────────┴────────────────┴───────────────┘
+┌────────┬────────────┬───────────┬───────────────┐
+│ custom │ is_us_gaap │ row_count │ distinct_tags │
+│ int64  │  boolean   │   int64   │     int64     │
+├────────┼────────────┼───────────┼───────────────┤
+│      0 │ false      │     63783 │           834 │
+│      0 │ true       │   3446030 │          4030 │
+│      1 │ false      │    323164 │         57392 │
+└────────┴────────────┴───────────┴───────────────┘
+┌───────────────┬──────────────────┬───────────┐
+│ coreg_is_null │ segments_is_null │ row_count │
+│    boolean    │     boolean      │   int64   │
+├───────────────┼──────────────────┼───────────┤
+│ false         │ false            │     39748 │
+│ true          │ false            │   2215866 │
+│ true          │ true             │   1577363 │
+└───────────────┴──────────────────┴───────────┘
+┌─────────────┬───────────┬───────────────┐
+│  taxonomy   │ row_count │ distinct_tags │
+│   varchar   │   int64   │     int64     │
+├─────────────┼───────────┼───────────────┤
+│ ifrs        │     62710 │           782 │
+│ us-gaap-ebp │       709 │            40 │
+│ srt         │       358 │            10 │
+│ dei         │         6 │             2 │
+└─────────────┴───────────┴───────────────┘

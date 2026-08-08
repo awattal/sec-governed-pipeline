@@ -289,13 +289,12 @@ dictionary entries at a cost of 8.43% of reported values.
 
 ## F10 — Duration concepts reported as instants
 
-**Monitor.** `iord = 'D'` with `qtrs = 0`, currently 0.65% of
-     standard-tag rows. Investigate above 1%. A defect, but a persistent
-     one — asserting it would fail every build, which is the F4 failure mode.
+**Monitor.** `iord = 'D'` with `qtrs = 0`. Rate and threshold restated
+against the modelled scope in F22 — the figures below predate F13/F14
+and describe a wider population.
 
-
-Cross-checking each fact's `qtrs` against its tag's declared `iord`,
-restricted to standard tags:
+Each fact's `qtrs` cross-checked against its tag's declared `iord`,
+standard tags only:
 
 | iord | fact shape          | rows      | distinct tags |
 |------|---------------------|-----------|---------------|
@@ -304,31 +303,24 @@ restricted to standard tags:
 | I    | instant  (qtrs = 0) | 1,685,019 | 1,873         |
 | I    | duration (qtrs > 0) | 0         | 0             |
 
-The three populated rows sum to 3,509,813, reconciling exactly to the
-standard-tag row count in F9.
-
-22,930 rows (0.65%) across 715 distinct tags report a duration concept
-with no duration. The inconsistency is one-directional: no
+Sums to 3,509,813, reconciling to F9. 22,930 rows (0.653%) across 715
+tags report a duration concept with no duration. One-directional: no
 instant-declared tag is ever reported over a duration.
 
-Assessment: defect. The dictionary and the fact disagree, and the
-dictionary is the authoritative source for whether a concept is an
-instant or a duration.
+**Assessment:** defect. The dictionary and the fact disagree, and the
+dictionary is authoritative on whether a concept is an instant.
 
-The one-directional pattern suggests a systematic rather than random
-cause — one hypothesis is that `qtrs = 0` acts as a fallback when
-period context fails to resolve, giving durations somewhere to collapse
-to and instants nowhere. This is untested and stated as a hypothesis
-only.
+The asymmetry suggests a systematic cause. Hypothesis, untested:
+`qtrs = 0` acts as a fallback when period context fails to resolve —
+durations can collapse to it, instants have nowhere to go.
 
-Implication: rule candidate — `iord = 'D'` implies `qtrs > 0`. This
-rule is derived from the dataset's own metadata rather than from an
-assumption about what a concept ought to mean, which is the distinction
-F5 exists to enforce.
+**Implication:** rule candidate, `iord = 'D'` implies `qtrs > 0`.
+Derived from the dataset's own metadata rather than from an assumption
+about what a concept ought to mean — the distinction F5 exists to
+enforce.
 
-Open: sampled violations include values denominated in AUD and several
-values of exactly zero. Whether violations are disproportionately
-zero-valued is not yet measured.
+**Open:** sampled violations include AUD values and several exact
+zeros. Whether violations skew zero-valued is unmeasured.
 
 ## F11 — Referential integrity: `num` to `tag`
 
@@ -541,5 +533,106 @@ adapter's coercion rules rather than on anything declared.
 passes may be passing for reasons unrelated to what it appears to
 assert.
 
+## F19 — `custom = 0` and us-gaap are not the same filter
 
+**Discovery.**
+
+| custom | us-gaap version | rows      | distinct tags |
+|--------|-----------------|-----------|---------------|
+| 0      | true            | 3,446,030 | 4,030         |
+| 0      | false           | 63,783    | 834           |
+| 1      | false           | 323,164   | 57,392        |
+
+The fourth cell is empty. A us-gaap version implies a standard tag;
+the converse does not hold.
+
+**Assessment:** not a defect. Two filters were carried where one is
+load-bearing.
+
+**Implication:** the scope has one vocabulary axis. Drop `custom = 0`
+from the scope statement.
+
+The filter is a string pattern, and `us-gaap-ebp` fails it on prefix
+form alone. Excluding employee benefit plan filings is defensible —
+but it happened by accident of matching, not by decision. A filter
+that excludes a population its author never considered is the F5
+failure class in reverse.
+
+---
+
+## F20 — `coreg` is fully subsumed by `segments`
+
+**Discovery.**
+
+| coreg populated | segments populated | rows      |
+|-----------------|--------------------|-----------|
+| yes             | yes                | 39,748    |
+| no              | yes                | 2,215,866 |
+| no              | no                 | 1,577,363 |
+
+No coregistrant row lacks a segment, in 3.8M rows. The consolidated
+filter already removes every one. Not documented in `readme.htm`.
+
+**Assessment:** not a defect. A structural relationship in the source.
+
+**Implication:** `coreg is null` adds nothing to the scope filter. But
+it is observed for one quarter, not guaranteed — so it becomes a cheap
+assertion rather than a discarded filter, failing loudly if a future
+quarter breaks the pattern and silently widens the scope.
+
+Coregistrant rows are 1.8% of the dimensional exclusion, so F14's
+58.85% is overwhelmingly segment breakdown, not subsidiary filings.
+
+---
+
+## F21 — The standard non-us-gaap population is 98.3% IFRS
+
+**Discovery.**
+
+| taxonomy    | rows   | distinct tags |
+|-------------|--------|---------------|
+| ifrs        | 62,710 | 782           |
+| us-gaap-ebp | 709    | 40            |
+| srt         | 358    | 10            |
+| dei         | 6      | 2             |
+
+Tags sum to 834, matching F19 — no tag name spans two taxonomies.
+
+**Assessment:** not a defect. F13's characterisation is accurate and
+incomplete.
+
+**Implication:** amend F13 to say predominantly IFRS. A scope
+statement that names only its largest occupant invites the reader to
+assume the rest is nothing. `us-gaap-ebp` is carried into F19.
+
+---
+
+## F22 — F10 is scope-dependent
+
+**Monitor.**
+
+| scope                     | rows      | violations | rate   |
+|---------------------------|-----------|------------|--------|
+| all `num` rows            | 3,832,977 | 24,814     | 0.647% |
+| standard tags             | 3,509,813 | 22,930     | 0.653% |
+| us-gaap only              | 3,446,030 | 22,620     | 0.656% |
+| + consolidated (modelled) | 1,393,562 | 3,425      | 0.246% |
+
+Derived: the excluded dimensional rows carry 19,195 violations across
+2,052,468 rows — 0.935%, or 3.8x the modelled rate. The consolidated
+filter removes 60% of rows and 85% of violations.
+
+**Assessment:** defect, unchanged from F10. What changes is the rate,
+which is a property of the population.
+
+**Implication:** F10's 1% threshold was set against 0.653% — 1.5x
+headroom. Applied unchanged to the modelled layer at 0.246%, it
+becomes 4x headroom and would tolerate a quadrupling before firing.
+The threshold didn't move; the ground under it did. Every monitor here
+carries its population in its definition.
+
+Second: if staging applied the scope filters rather than flagging
+rows, 19,195 violations would leave the pipeline entirely. The dirtier
+population would become untestable precisely because it was excluded.
+This is the empirical case for flags over filters in staging.
 
