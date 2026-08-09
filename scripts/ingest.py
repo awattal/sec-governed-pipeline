@@ -8,6 +8,7 @@ Loads sub, num, tag and pre for one quarter into data/sec.duckdb.
 Safe to re-run: that quarter's rows are replaced, other quarters are untouched.
 """
 
+import os
 import sys
 from pathlib import Path
 
@@ -15,13 +16,17 @@ import duckdb
 
 TABLES = ["sub", "num", "tag", "pre"]
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
-DB_PATH = PROJECT_ROOT / "data" / "sec.duckdb"
+DB_PATH = Path(os.environ.get("SEC_DB_PATH", PROJECT_ROOT / "data" / "sec.duckdb"))
 
 
-def parse_args() -> str:
-    if len(sys.argv) != 2:
-        sys.exit("Usage: python scripts/ingest.py <quarter>    e.g. 2025q4")
-    return sys.argv[1].lower()
+def parse_args() -> tuple[str, str | None]:
+    if len(sys.argv) not in (2, 3):
+        sys.exit(
+            "Usage: python scripts/ingest.py <quarter> [source_dir]\n"
+            "  e.g. python scripts/ingest.py 2025q4\n"
+            "       python scripts/ingest.py 2025q4 tests/fixtures/2025q4"
+        )
+    return sys.argv[1].lower(), sys.argv[2] if len(sys.argv) == 3 else None
 
 
 def validate(raw_dir: Path) -> None:
@@ -61,8 +66,13 @@ def report(con) -> None:
 
 
 def main() -> None:
-    quarter = parse_args()
-    raw_dir = PROJECT_ROOT / "data" / "raw" / quarter
+    quarter, source_dir = parse_args()
+    if source_dir:
+        raw_dir = Path(source_dir)
+        if not raw_dir.is_absolute():
+            raw_dir = PROJECT_ROOT / raw_dir
+    else:
+        raw_dir = PROJECT_ROOT / "data" / "raw" / quarter
     validate(raw_dir)
 
     con = duckdb.connect(str(DB_PATH))
