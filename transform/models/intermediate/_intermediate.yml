@@ -20,3 +20,13 @@ models:
               - uom
               - coreg
               - segments
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "is_us_gaap"
+          config:
+            alias: int_num_in_scope_us_gaap_only
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "is_consolidated"
+          config:
+            alias: int_num_in_scope_consolidated_only

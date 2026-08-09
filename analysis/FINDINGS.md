@@ -49,6 +49,7 @@ Each finding is tagged by what it becomes downstream.
 | F21 | Discovery | — |
 | F22 | Monitor   | Restates F10's threshold against the modelled scope |
 | F23 | Discovery | In-scope assertion: `num` key holds on int_num_in_scope |
+| F24 | Discovery | Assertion: in-scope rows are us-gaap and consolidated |
 
 Thresholds are initial values set from 2025Q4 and will be revised once a
 second batch establishes normal variation.
@@ -718,4 +719,43 @@ rows show one filing. `store_failures` was enabled to diagnose this
 failure and the count alone pointed at the wrong conclusion — a
 worked example of why a counting test is insufficient input for an
 agent deciding whether a rule or the data is at fault.
+
+---
+
+## F24: The scope filter was applied but not enforced
+
+**Discovery.**
+Derived assertion: is_us_gaap and is_consolidated hold
+on every row of int_num_in_scope.
+
+**Documented:** F14, F19 and F22 define the governed population as
+us-gaap consolidated facts. int_num_in_scope applies it in a single
+where clause and the model comment states that changing scope means
+changing that clause and nothing else.
+
+**Actual:** The model carried one test — the composite key across adsh,
+tag, version, ddate, qtrs, uom, coreg, segments. That key
+includes segments and version, so dimensional and non-us-gaap rows
+remain mutually unique. No test referenced the model's scope. The
+governed population could expand from 1,393,562 rows to the full
+3,832,977 with the suite still green.
+
+**Impact:** The scope decision was documented in three findings and in
+the model itself, and was still unguarded. Documentation and enforcement
+had been treated as the same thing. A suite that stays green while the
+governed population is silently redefined certifies the wrong property —
+it confirms the pipeline runs, not that it governs what it claims to.
+
+**Proposed rule:** Assert both scope axes on int_num_in_scope, as
+separate tests so a failure names the axis. Error severity, no
+threshold — a row outside scope means the filter is gone, not that a
+tolerance was exceeded.
+
+**Resolved:** Two dbt_utils.expression_is_true tests added (9 Aug).
+Both pass at zero rows. dbt test --select int_num_in_scope returns
+PASS=3 WARN=1, the warn being F10 at 3,425 rows — 0.246% of the governed
+population, reconciling to F22.
+
+---
+
 

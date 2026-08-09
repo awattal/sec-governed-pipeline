@@ -27,6 +27,7 @@ The agent loop can't be trusted without these.
   as `NO DATA` with no reason. The difference between an agent that
   can self-correct and one that stalls.
 
+
 ## Do when convenient
 
 - `store_failures` has no row limit. dbt's `limit` caps the reported
@@ -39,6 +40,43 @@ The agent loop can't be trusted without these.
   custom tags carry an accession number, not a taxonomy name.
 - `_sources.yml`: the tag source documents four columns; `stg_tag`
   now consumes `crdr` and `datatype`, which are undocumented.
+- Fixture column type inference. DuckDB read_csv infers types from the
+  data it sees. A column that is entirely null in the fixture may be
+  typed differently than in the full file, so a model can pass in CI and
+  fail locally, or the reverse. If it bites, declare explicit column
+  types in ingest.py rather than inferring.
+- Rate-based monitors on a small population. config/monitors.yml holds
+  tolerances as rates. On a few thousand fixture rows a single row moves
+  the rate far more than it does on 3.8m. Decide whether CI judges
+  monitors at all, or only asserts.
+- Referential test vacuity in CI. The fixture prunes tag to rows
+  referenced by num, so any num-to-tag relationship test passes by
+  construction. It can still catch model logic regressions, not data
+  regressions. State this limitation in the README alongside the
+  fixture description.
+- requirements.txt is a full pip freeze including transitive
+  dependencies. Reproducible, but upgrading any single package is
+  awkward. Consider a direct-dependency file compiled to a lock file
+  if maintenance becomes painful. Not urgent.
+- Negative fixture. The CI fixture is valid data and exercises only
+  code-regression tests. Defect-catching tests (period_end_date
+  not_null as the F1 control) cannot be exercised by data the pipeline
+  passes on. A separate negative fixture with assert-failure tests
+  would prove those controls work. Not W3.
+- Test count discrepancy. Declared tests across the three YAML files
+  appear to exceed the recorded 35. Reconcile.
+- F10 test comment is stale. It states the rate lives in monitor_rates
+  in dbt_project.yml and the row count is computed at run time. That
+  describes the abandoned macro approach. W2 moved threshold judgement
+  to run_dbt_test.py against config/monitors.yml. Correct the comment.
+- Config location inconsistency. The F10 comment cites dbt_project.yml
+  monitor_rates; the W2 design cites config/monitors.yml. Confirm which
+  is live and remove the other reference.
+- Custom test names. The alias config key on the two expression_is_true
+  tests was silently ignored; dbt generated its own names. Auto-names
+  are adequate but unwieldy. Use the name: key at test level if
+  deliberate naming becomes necessary for the agent's node matching.
+
 
 ## Parked
 
@@ -57,6 +95,10 @@ The agent loop can't be trusted without these.
   4,030 used in `num` — a third of the standard vocabulary is unused
   this quarter. Same shape as F9. Promote or drop; "not yet written
   up" is where observations go to die.
+- Periodic full-volume run. CI proves correctness on a fixture, not
+  behaviour at 3.8m rows. Consider a scheduled workflow that ingests the
+  real quarter and runs the suite, separate from the per-push gate.
+
 
 ## Write-up material
 
