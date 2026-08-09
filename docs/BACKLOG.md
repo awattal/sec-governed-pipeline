@@ -76,6 +76,14 @@ The agent loop can't be trusted without these.
   tests was silently ignored; dbt generated its own names. Auto-names
   are adequate but unwieldy. Use the name: key at test level if
   deliberate naming becomes necessary for the agent's node matching.
+- coreg is inert in the PK. No group in 2025Q4 differs on coreg alone,
+  so removing it from the key test is undetectable. Re-test when a
+  second quarter lands.
+- abstract flag is constant in 2025Q4 (F26). is_abstract cast is
+  unexercised for true. Re-check on second quarter before concluding
+  the column is inert.
+- make_fixture.py profiler prints GAP marker on expected-zero checks
+  even though they are excluded from the gap list. Cosmetic.
 
 
 ## Parked

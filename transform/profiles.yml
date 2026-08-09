@@ -1,7 +1,23 @@
+# Connection configuration, version-controlled deliberately.
+#
+# DuckDB is a local file, so there is nothing secret here. If an adapter
+# requiring credentials is ever added, the secret goes in an environment
+# variable and this file references it -- never the value itself.
+#
+# dev  reads the full quarter at data/sec.duckdb
+# ci   reads whatever SEC_DB_PATH points at, defaulting to a fixture
+#      database the workflow builds fresh on each run
+
 transform:
   target: dev
   outputs:
+
     dev:
       type: duckdb
-      path: ../data/sec.duckdb
+      path: "{{ env_var('SEC_DB_PATH', '../data/sec.duckdb') }}"
       threads: 1
+
+    ci:
+      type: duckdb
+      path: "{{ env_var('SEC_DB_PATH', '../data/ci.duckdb') }}"
+      threads: 4

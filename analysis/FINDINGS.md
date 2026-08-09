@@ -50,6 +50,8 @@ Each finding is tagged by what it becomes downstream.
 | F22 | Monitor   | Restates F10's threshold against the modelled scope |
 | F23 | Discovery | In-scope assertion: `num` key holds on int_num_in_scope |
 | F24 | Discovery | Assertion: in-scope rows are us-gaap and consolidated |
+| F25 | Discovery | — (coreg stays in the key; no test can guard it) |
+| F26 | Discovery | — (abstract absent from source; cast untestable) |
 
 Thresholds are initial values set from 2025Q4 and will be revised once a
 second batch establishes normal variation.
@@ -758,4 +760,58 @@ population, reconciling to F22.
 
 ---
 
+---
 
+## F25: `coreg` contributes nothing to key uniqueness
+
+**Discovery.** No derived assertion. The column stays in the key as
+documented grain; nothing can test that it belongs there.
+
+**Documented:** `coreg` is part of the `num` primary key —
+coregistrant, distinguishing facts filed by a subsidiary within a
+parent's submission.
+
+**Actual:** Zero groups in 2025Q4 differ on `coreg` alone. Grouping
+`num` by every key column except `coreg` and requiring more than one
+distinct value returns no rows across all 3,832,977. Follows from F20:
+`coreg` is never populated without `segments`, so `segments` already
+discriminates wherever `coreg` could.
+
+**Impact:** The column is inert as a key component. Removing it from
+the composite key test would not fail anything — the same class of gap
+as F24, a control that is present but not doing the work it appears to
+do. Retaining it is a bet that a future quarter contains a filing where
+it discriminates. That bet is unverifiable on one batch.
+
+**Proposed rule:** None. The CI fixture cannot cover this branch — the
+selection query returns nothing to select. Re-test when a second
+quarter lands; if `coreg` still discriminates nothing across two
+batches, the question becomes whether the documented grain is wrong or
+the data is.
+
+---
+
+## F26: `abstract` is constant across the dictionary
+
+**Discovery.** No derived assertion. `is_abstract` is cast in `stg_tag`
+and carries a not-null test; neither can fail on this batch.
+
+**Documented:** `abstract` is 1 where the concept is a grouping header
+carrying no value, 0 otherwise.
+
+**Actual:** 0 of 84,907 tag rows have `abstract = 1`. Not merely
+unreferenced by `num` or `pre` — absent from the dictionary entirely.
+
+**Impact:** The boolean cast is unexercised for its true case, and the
+not-null test passes on a constant. Both would continue passing if the
+cast were wrong. The flag is meaningful by design and carries no
+information in this batch, so any downstream logic branching on it is
+untested. Discovered while building the CI fixture, which is the useful
+part: coverage profiling surfaced a source property that 37 passing
+tests did not.
+
+**Proposed rule:** None available. No fixture selection can cover a
+value the source does not contain. Re-check on a second quarter before
+concluding the column is inert.
+
+---
