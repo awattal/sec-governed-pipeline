@@ -195,6 +195,7 @@ provide, is evidence of a real gap. These are the candidates for
 taxonomy standardisation: concepts with demonstrated multi-filer
 demand that the standard taxonomy does not currently cover.
 
+---
 
 ## F6 — Filings report facts for multiple periods
 
@@ -219,6 +220,8 @@ Secondary observation: the inner join from `num` to `sub` returned
 6,304 filings, matching the `sub` row count from the W1 load
 reconciliation. Every filing with facts has a submission record.
 
+---
+
 ## F7 — `iord` domain verified
 
 **Assertion.** Domain {I, D}, not null.
@@ -229,6 +232,8 @@ The `iord` column in `tag` takes exactly two values, `I` (instant) and
 Assessment: no defect. Recorded because F10 depends on this column,
 and a rule built on an unverified domain is the failure mode
 documented in F5.
+
+---
 
 ## F8 — `qtrs` distribution and out-of-range tail
 
@@ -266,6 +271,8 @@ reject. Distinguishing "flag" from "reject" matters here: a rejection
 rule would discard valid filings, which is the F5 failure mode applied
 prospectively.
 
+---
+
 ## F9 — Custom tags dominate the dictionary but not the data
 
  **Discovery.**
@@ -294,6 +301,8 @@ profiling the data it describes, and the two can support opposite
 conclusions about the same population. This finding sets the scope of
 the modelled layer — restricting to standard tags excludes 92% of
 dictionary entries at a cost of 8.43% of reported values.
+
+---
 
 ## F10 — Duration concepts reported as instants
 
@@ -343,6 +352,8 @@ test is calibrated to the volume it was written at and drifts
 silently as volume changes — the failure F22 documents, in a
 different form. A rate held in configuration stays meaningful.
 
+---
+
 ## F11 — Referential integrity: `num` to `tag`
 
 **Assertion.** Zero unmatched rows on the (`tag`, `version`) join.
@@ -354,6 +365,8 @@ dictionary entry.
 Assessment: no defect. Recorded because it was checked, and because
 the left join was chosen specifically so that unmatched rows would be
 counted rather than silently dropped.
+
+---
 
 ## F12 — Primary key not unique in dimensional detail
 
@@ -404,6 +417,8 @@ result, not by convenience.
 Open: whether the single exact-duplicate group also originates from
 that filing has not been verified.
 
+---
+
 ## F13 — The dataset spans multiple taxonomies
 
 **Discovery.** Scope decision: `version like 'us-gaap/%'`.
@@ -436,6 +451,8 @@ the other is a population definition. Restricting the modelled layer to
 removes the need for a cross-taxonomy concept mapping layer. The
 exclusion is a scoping decision, recorded here so that IFRS filers are
 not later reported as defective.
+
+---
 
 ## F14 — Facts exist at two levels: consolidated and dimensional
 
@@ -481,6 +498,8 @@ more specific revenue concepts. A mart column list assembled from
 intuition about which concepts "should" be present will produce sparse
 columns that read as missing data.
 
+---
+
 ## F15 — `changed` is null on 42% of filings
 
 **Discovery.**
@@ -501,6 +520,8 @@ quality exception.
 Findings F1–F15 concern the SEC data. F16 onward concern the tooling —
 recorded because a control is only as trustworthy as the mechanism that
 reports it, and the same class of silent failure appears in both.
+
+---
 
 ## F16 — An errored test reports zero failures
 
@@ -525,6 +546,8 @@ before `failures`. Only `pass` and `fail` are conclusive; `error` and
 `conclusive` property on `TestResult` rather than by convention at each
 call site.
 
+---
+
 ## F17 — `run_results.json` contents depend on the invoking command
 
 **Observed:** `dbt build` writes both model and test nodes to
@@ -538,6 +561,8 @@ which command last ran, with no error.
 
 **Assertion.** Filter on `unique_id` prefix before parsing. Implemented
 in `scripts/run_dbt_test.py`.
+
+---
 
 ## F18 — `accepted_values` compares across types
 
@@ -553,6 +578,8 @@ adapter's coercion rules rather than on anything declared.
 **Discovery.** Relevant when the agent generates tests: a rule that
 passes may be passing for reasons unrelated to what it appears to
 assert.
+
+---
 
 ## F19 — `custom = 0` and us-gaap are not the same filter
 
