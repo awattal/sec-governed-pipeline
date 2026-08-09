@@ -1,0 +1,59 @@
+# Runs the pipeline on a blank machine against the committed fixture.
+#
+# A green tick asserts that the models compile, the tests run, and no
+# assertion fails on 17 deliberately selected filers. It does not
+# assert anything about behaviour at full volume -- see the fixture
+# note in the README.
+#
+# F10 warns by design and does not fail the build. dbt exits 0 on a
+# warning; --warn-error is deliberately not used, because F10 measures
+# and judgement happens outside dbt.
+
+name: CI
+
+on:
+  push:
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    env:
+      SEC_DB_PATH: ${{ github.workspace }}/data/ci.duckdb
+
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install Python dependencies
+        run: pip install -r requirements.txt
+
+      - name: Install dbt packages
+        working-directory: transform
+        run: dbt deps
+
+      - name: Create the data directory
+        run: mkdir -p data
+
+      - name: Build the fixture database
+        run: python scripts/ingest.py 2025q4 tests/fixtures/2025q4
+
+      - name: Build models and run tests
+        working-directory: transform
+        run: dbt build --target ci
+
+      - name: Upload dbt artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dbt-target
+          path: transform/target/
+          retention-days: 14
