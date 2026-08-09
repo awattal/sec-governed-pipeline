@@ -84,7 +84,11 @@ The agent loop can't be trusted without these.
   the column is inert.
 - make_fixture.py profiler prints GAP marker on expected-zero checks
   even though they are excluded from the gap list. Cosmetic.
-
+- docs/design.md and docs/ci.md. Design decisions currently live in
+  commit messages, findings and code comments. Consolidate after W3
+  item 2 settles severity and the action space. Write as dated
+  decisions, not as a description of the system, so entries become
+  history rather than going stale.
 
 ## Parked
 

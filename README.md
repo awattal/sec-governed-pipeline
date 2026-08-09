@@ -1,5 +1,7 @@
 # SEC Governed Pipeline
 
+[![CI](https://github.com/awattal/sec-governed-pipeline/actions/workflows/ci.yml/badge.svg)](https://github.com/awattal/sec-governed-pipeline/actions/workflows/ci.yml)
+
 A data governance case study built on SEC financial filings. The pipeline
 is real; the governed subject is an agent that proposes data quality rules
 and must justify them against evidence.
@@ -7,10 +9,35 @@ and must justify them against evidence.
 Data: [SEC Financial Statement Data Sets](https://www.sec.gov/dera/data/financial-statement-data-sets.html),
 2025Q4. Stack: DuckDB, dbt, Python, GitHub Actions.
 
-**Status:** in progress. Ingest, scoping, staging models and the first
-monitored rule complete; the agent loop in development.
+**Status:** in progress. Ingest, scoping, staging models, the first
+monitored rule and CI complete; the agent loop in development.
 
-## Setup
+## What CI asserts
+
+Every push and every pull request runs the pipeline on a blank machine:
+install from `requirements.txt`, ingest a committed fixture, `dbt build`.
+`main` accepts changes only through a pull request with that check green,
+and force pushes are blocked.
+
+The fixture is 17 whole filers from 2025Q4 — 9,735 fact rows — selected so
+that tests can fail rather than pass vacuously. The composite key on `num`
+is only meaningful if the data contains rows identical except on one key
+column, so the fixture holds 1,036 groups differing on `segments` alone and
+1,534 on `qtrs`. F10 is present at 4 rows, keeping the num-to-tag join
+reachable.
+
+**A green tick asserts correctness, not scale.** It proves the models
+compile and no assertion fails on those 17 filers. It proves nothing about
+behaviour at 3.8 million rows. A periodic full-volume run is open in the
+backlog.
+
+`scripts/make_fixture.py` rebuilds the fixture and profiles its own output
+against every branch a test depends on, naming any that are uncovered. Two
+cannot be covered by any selection because the values are absent from the
+source: `abstract = 1` across all 84,907 tag rows (F26), and any group
+differing on `coreg` alone (F25).
+
+## Quickstart
 
 Requires Python 3.12.
 
@@ -20,94 +47,31 @@ cd sec-governed-pipeline
 python3.12 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
+cd transform && dbt deps && cd ..
 ```
 
-Install the dbt packages:
+Then build the database against the committed fixture:
 
 ```bash
+SEC_DB_PATH=/tmp/sec_fixture.duckdb python scripts/ingest.py 2025q4 tests/fixtures/2025q4
 cd transform
-dbt deps
-cd ..
+SEC_DB_PATH=/tmp/sec_fixture.duckdb dbt build --target ci
 ```
 
-`dbt deps` reads `packages.yml` and installs `dbt_utils`, which the tests
-depend on. Skipping it produces a compilation error rather than a missing
-package error, which is harder to recognise.
-
-## Building the database
-
-The DuckDB file is not in version control — it is rebuilt from source data.
-
-1. Download a quarterly zip from the SEC link above.
-2. Extract it to `data/raw/<quarter>/`, e.g. `data/raw/2025q4/`. You should
-   have four files: `sub.txt`, `num.txt`, `tag.txt`, `pre.txt`.
-3. Run the ingest:
-
-```bash
-python scripts/ingest.py 2025q4
-```
-
-The script validates that all four files are present before touching the
-database, loads each into a table, and prints row counts by quarter.
-
-Re-running is safe. Each row carries a `quarter` column, and a re-run
-replaces only that quarter's rows — so quarters accumulate and no load is
-ever doubled.
-
-## Working with the database
-
-DuckDB permits a single writer, and the VS Code DuckDB extension takes an
-exclusive lock on the file when connected — **including when `readOnly` is
-set**. The setting does not do what its name suggests in this context.
-
-**Disconnect the extension before any dbt run or script write.** Otherwise
-the write fails with a lock error that does not name the extension as the
-cause.
-
-The repo ships an editor connection in `.vscode/settings.json`:
-
-```jsonc
-{
-  "duckdb.databases": [
-    {
-      "alias": "sec",
-      "type": "file",
-      "path": "./data/sec.duckdb",
-      "attached": true,
-      "readOnly": true
-    }
-  ],
-  "duckdb.defaultDatabase": "sec"
-}
-```
-
-`readOnly` is kept as a statement of intent rather than an enforced
-constraint: every write to this database comes from a script in version
-control — `scripts/ingest.py` and dbt. Undocumented manual mutation is the
-failure mode this project exists to argue against. The lock, not the
-setting, is what actually prevents it.
-
-Because `sec` is the default database, queries in `analysis/` reference
-tables unqualified (`sub`, `num`) rather than `sec.sub`.
-
-For command-line queries while the extension is attached, use the
-`-readonly` flag, which does work:
-
-```bash
-duckdb -readonly data/sec.duckdb -c "select count(*) from stg_num"
-```
+That runs the whole pipeline without downloading anything. For the full
+quarter, and for the DuckDB locking constraint that will otherwise stop
+you, see [`docs/setup.md`](docs/setup.md).
 
 ## Running the pipeline
 
-From `transform/`, with the VS Code extension disconnected:
+From `transform/`, with the VS Code DuckDB extension disconnected:
 
 ```bash
-dbt run     # build the models
-dbt test    # run the tests
+dbt build
 ```
 
 Four models build: three staging models 1:1 with source, and
-`int_num_in_scope`, which applies the scope filter. 35 tests run; one warns
+`int_num_in_scope`, which applies the scope filter. 37 tests run; one warns
 by design.
 
 For monitored rules, `dbt test` reports a raw count and nothing else. The
@@ -118,13 +82,16 @@ python scripts/run_dbt_test.py f10_duration_reported_as_instant
 ```
 
 ```
-WITHIN  f10_duration_reported_as_instant  3,425 of 1,393,562 = 0.246% (tolerance 0.5%)
+WITHIN f10_duration_reported_as_instant 3,425 of 1,393,562 = 0.246% (tolerance 0.5%)
 ```
 
 Tolerances are held as rates in `config/monitors.yml`. A dbt test measures;
 whether the measurement is acceptable is a governance decision applied
 separately. A threshold written into a test as a row count is calibrated to
 the volume it was written at and drifts silently as that volume changes.
+
+CI does not set `--warn-error`. F10 warns on the fixture and the build
+stays green, which preserves that separation rather than collapsing it.
 
 ## Scope
 
@@ -145,6 +112,12 @@ on them, so excluded rows remain in the pipeline and remain testable. F22
 measures why this matters: the consolidated filter removes 60% of rows and
 85% of known violations, so the defect concentrates in the rows a filtering
 staging layer would have discarded.
+
+Applying the filter is not the same as enforcing it. Until F24 the model
+carried one test — the composite key — which includes `segments` and
+`version`, so out-of-scope rows would have stayed mutually unique and their
+arrival undetectable. The `where` clause could have been deleted with every
+test green. Two assertions now hold each scope axis.
 
 Mart columns are selected from measured coverage rather than intuition.
 `Revenues`, for example, appears in only 32.5% of filings.
@@ -169,10 +142,19 @@ All findings were measured on 2025Q4.
 ## Layout
 
 ```
-analysis/    profiling and scoping SQL; FINDINGS.md
-config/      monitor tolerances
-data/        sec.duckdb and raw source files, both gitignored
-docs/        BACKLOG.md
-scripts/     ingest, and the dbt bridge used by the agent
-transform/   the dbt project
+.github/ the CI workflow
+analysis/ profiling and scoping SQL; FINDINGS.md
+config/ monitor tolerances
+data/ sec.duckdb and raw source files, both gitignored
+docs/ setup.md, BACKLOG.md
+scripts/ ingest, fixture builder, and the dbt bridge used by the agent
+tests/ the CI fixture
+transform/ the dbt project
 ```
+
+## Documentation
+
+- [`docs/setup.md`](docs/setup.md) — environment, ingesting a quarter, and
+  the DuckDB single-writer constraint
+- [`analysis/FINDINGS.md`](analysis/FINDINGS.md) — F1–F26
+- [`docs/BACKLOG.md`](docs/BACKLOG.md) — open work
