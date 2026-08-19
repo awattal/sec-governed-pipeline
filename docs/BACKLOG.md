@@ -31,19 +31,24 @@ Step 2 cannot be built or trusted without these.
 - Rejected proposals must be retained, not discarded. The `wrong`
   disposition is the precision denominator. If rejected rules are
   deleted, the headline eval metric cannot be computed.
+- Proposal schema is missing the row filter. target names the column
+  (int_num_in_scope.value) but not the population. Every check needs
+  tag = '<concept>' and the filter currently exists only in prompt
+  prose. Add a structured filter field before compile_rules.py.
+
+- assertion shapes are unconstrained. First sign proposal returned
+  {direction: non_negative}; nothing prevents a different shape next
+  time. Fix a per-check-type assertion schema after the first batch,
+  when real shapes are known for several types. Validator currently
+  checks only that assertion is an object.
 
 ## Blocks the eval
 
-- **Run history table.** Carries a population dimension (in scope /
-  out of scope), the baseline count set at acceptance, and the rule
-  version the finding was produced under. Everything downstream
-  depends on it: drift, batch comparison, out-of-scope recording,
-  and the agent's own results.
-  Also carries impact attributes. 3,425 F10 violations in shell
-  companies and 3,425 in large filers currently read identically to
-  the pipeline. `value` and filer size are available to record
-  against a finding. This is a recorded attribute, not a severity
-  input.
+- Findings table in DuckDB: run_id, run_at, quarter, rule_id,
+  rule_version, population, rows_evaluated, rows_failed. Rate is
+  computed at report time, never stored, so the denominator stays
+  visible. Written by run_dbt_test.py. Dispositions are not held
+  here — they live in the rule YAML under version control.
 - **Multi-quarter load (2025Q3).** Moved out of Parked. The holdout
   decision makes this load-bearing: rules proposed from Q4 are
   evaluated against Q3, and without it there is no evidence the
@@ -125,6 +130,23 @@ That is acceptable if decided rather than discovered.
   if maintenance becomes painful.
 - make_fixture.py profiler prints GAP marker on expected-zero checks
   even though they are excluded from the gap list. Cosmetic.
+- API key expires ~15 Sep 2026. propose.py will fail with an auth
+  error after that date. Setup docs must state that a key is
+  required and how to obtain one, so the failure is diagnosable
+  rather than mysterious. Findings and rules remain readable
+  without a key — only new proposals need one.
+- model field records the alias claude-sonnet-5, not a dated model
+  identifier. The alias resolves to different weights over time, so
+  two proposals recording the same value may not have come from the
+  same model. Check whether the API exposes a resolved dated
+  identifier; if it does, record that instead. If it does not, state
+  the limitation in the README rather than implying provenance is
+  tighter than it is.
+- propose.py reads column names from stg_tag directly. Two failed
+  runs this session came from the script and the staging model
+  disagreeing on names. The element lineage list (W3) is the record
+  of source-to-model renames and would have prevented both. Note as
+  evidence the artifact earns its keep.
 
 ## Parked
 
@@ -146,6 +168,11 @@ That is acceptable if decided rather than discovered.
 - `abstract` flag is constant in 2025Q4 (F26). `is_abstract` cast is
   unexercised for true. Re-check on the second quarter before
   concluding the column is inert.
+- CDE criteria (identifies a record, carries a value, scopes the
+  population, places a value in time) apply to columns, not tags.
+  The framework has been written against tags in places. Correct
+  before it reaches the README. Tag-level criticality needs a
+  separate basis — statement structure is the working one.
 
 ## Write-up material
 
@@ -162,3 +189,71 @@ Not work. Notes for the W5 failure analysis.
 - `_display_name` returned an empty string for singular tests, which
   silently disabled the monitor lookup. Plausible-looking output, no
   error. F5's shape again.
+
+  ## Blocks the proposal loop
+
+- Proposal schema is missing the row filter. `target` names the column
+  (`int_num_in_scope.value`) but not the population. Every check needs
+  `tag = '<concept>'`; the filter currently exists only in prompt prose.
+  Add a structured filter field before `compile_rules.py`.
+
+- `assertion` shapes are unconstrained. The first `sign` proposal
+  returned `{direction: non_negative}`; nothing prevents a different
+  shape next time. Fix a per-check-type assertion schema after the
+  first batch, when real shapes are known across several types.
+
+- `propose_v2.md` asks the model to originate assertions with no
+  declared business intent as input. Inconsistent with the position
+  that business supplies intent and the agent scales it. Add an intent
+  parameter before the volume run.
+
+- `propose_v2.md` and the multi-check `propose.py` are written but not
+  yet run. Both schema questions above are unanswered by any output.
+
+- `rules/proposed/accountspayablecurrent__sign.yml` is a v1 artifact
+  with no `dimension` field. Inconsistent with the v2 schema.
+  Regenerate or delete; do not promote.
+
+- Tag selection for proposals is a heuristic (statement-structure
+  tags), not a designation. Replace with CDE-derived selection before
+  any volume run, or the rule set has no defensible basis for scope.
+
+- CDE-aware proposal depth. Critical elements should attract a fuller
+  rule family than non-critical ones. Not implementable until CDE
+  designation exists. Until then the cap of five applies uniformly;
+  afterwards the cap becomes a function of criticality.
+
+## Blocks the eval
+
+- Dimension over-claim is expected and should be measured, not
+  prevented. `accuracy` requires a reference source the pipeline does
+  not hold; `timeliness` is not testable by a value check. Count how
+  often each is claimed and report it.
+
+## Polish
+
+- API key expires ~15 Sep 2026. `propose.py` will fail with an auth
+  error after that date. Setup docs must state that a key is required
+  and how to obtain one, so the failure is diagnosable. Findings and
+  rules remain readable without a key.
+
+- `model` field records the alias `claude-sonnet-5`, not a dated
+  identifier. The alias resolves to different weights over time, so
+  two proposals recording the same value may not share a model. Check
+  whether the API exposes a resolved dated identifier; if not, state
+  the limitation in the README.
+
+- `docs/CDE.md` must state that blanket upstream inheritance produces
+  a CDE count above the 10-15% banking benchmark, because derivation
+  chains converge on shared sources (`version` feeds both `taxonomy`
+  and `is_us_gaap`). Otherwise the count reads as a miscalibrated
+  threshold.
+
+- `pre` is ingested and read by no model; all 10 SEC columns unused.
+  Either build a model on it or note in the README that it is staged
+  for statement-structure work.
+
+- Two failed runs this session came from `propose.py` and `stg_tag`
+  disagreeing on column names. `docs/LINEAGE.md` is the record of
+  source-to-model renames and would have prevented both. Evidence the
+  artifact earns its keep.
