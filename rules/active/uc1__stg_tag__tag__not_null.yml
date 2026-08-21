@@ -1,0 +1,14 @@
+rule_id: uc1__stg_tag__tag__not_null
+status: active
+origin: cde_assessment
+use_case: UC-1
+filter: null
+tolerance: null
+created_at: '2026-08-20'
+check_type: not_null
+dimension: completeness
+target: stg_tag.tag
+assertion: {}
+basis: Critical data element, mandatory. Primary key component.
+implication: A dictionary entry with no tag name cannot be joined to the facts that
+  use it. Those facts lose access to their definition, datatype and period type.

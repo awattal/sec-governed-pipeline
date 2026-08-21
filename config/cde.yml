@@ -1,0 +1,228 @@
+# Critical data element designation, machine-readable form.
+# Reasoning, scoring and weights are in docs/CDE.md.
+#
+# mandatory: whether a null is a defect. Elements where null carries
+# meaning (segments, coreg) are designated critical but not mandatory.
+#
+# Some elements are structurally guaranteed by the model expression
+# and their rules cannot fail. They are registered anyway: a consumer
+# cannot see the transformation and has no way to distinguish "not
+# checked" from "checked and clean".
+
+use_case: UC-1
+
+elements:
+  - element: adsh
+    model: int_num_in_scope
+    mandatory: true
+    basis: Critical data element, mandatory. Identifies the filing a fact came from.
+    implication: >-
+      A fact with no accession number cannot be traced to the filing that
+      reported it. It cannot be attributed to a registrant, dated, or
+      verified against the source document.
+
+  - element: tag
+    model: int_num_in_scope
+    mandatory: true
+    basis: Critical data element, mandatory. Identifies the concept being reported.
+    implication: >-
+      A value with no concept is an uninterpretable number. It cannot be
+      aggregated, compared across filers, or matched to a definition.
+
+  - element: version
+    model: int_num_in_scope
+    mandatory: true
+    basis: Critical data element, mandatory. Resolves the tag to a taxonomy.
+    implication: >-
+      Without the taxonomy version the tag cannot be resolved to a
+      definition. The same tag name may be defined differently across
+      versions, so the concept becomes ambiguous rather than merely
+      unlabelled.
+
+  - element: ddate
+    model: int_num_in_scope
+    mandatory: true
+    basis: Critical data element, mandatory. Source integer for period_end_date.
+    implication: >-
+      A null here means the filing reported no period for the fact. No
+      downstream date can be derived, and the fact cannot be placed on a
+      timeline or compared across quarters.
+
+  - element: period_end_date
+    model: int_num_in_scope
+    mandatory: true
+    basis: Critical data element, mandatory. Recast of ddate.
+    implication: >-
+      A null here where ddate is populated means the cast failed - the
+      source integer was not a valid date. Any period filter silently
+      drops the row rather than erroring, so the fact disappears from
+      results without trace.
+
+  - element: qtrs
+    model: int_num_in_scope
+    mandatory: true
+    basis: Critical data element, mandatory. Distinguishes instant from duration facts.
+    implication: >-
+      Period length separates a balance from a flow. Without it a
+      point-in-time value and a twelve-month value are indistinguishable
+      and may be summed together, producing a total that corresponds to
+      nothing.
+
+  - element: uom
+    model: int_num_in_scope
+    mandatory: true
+    basis: Critical data element, mandatory. States what the value measures.
+    implication: >-
+      A number without a unit cannot be compared or aggregated. Amounts
+      in USD and counts of shares would be summed as though they were
+      the same quantity.
+
+  - element: value
+    model: int_num_in_scope
+    mandatory: true
+    basis: >-
+      Critical data element, mandatory. Absence of a reported amount is a
+      completeness gap even where the filing is otherwise valid.
+    implication: >-
+      The fact carries no amount. A null contributes nothing to a sum, so
+      any aggregate over this concept understates silently - the result
+      looks complete and is short by the number of affected rows.
+
+  - element: is_us_gaap
+    model: int_num_in_scope
+    mandatory: true
+    basis: >-
+      Critical data element, mandatory. Structurally guaranteed - the
+      element appears in the model's WHERE clause, so the rule cannot
+      fail. Registered so the control is visible to consumers who cannot
+      see the transformation.
+    implication: >-
+      A null here would mean the taxonomy could not be determined for a
+      fact inside the governed population, which is defined as us-gaap
+      only. The scope boundary would be unenforceable.
+
+  - element: is_consolidated
+    model: int_num_in_scope
+    mandatory: true
+    basis: >-
+      Critical data element, mandatory. Structurally guaranteed - computed
+      as `segments is null`, which returns a boolean, and additionally
+      filtered on by the model. Registered so the control is visible to
+      consumers who cannot see the transformation.
+    implication: >-
+      A null here would mean a fact could not be classified as
+      consolidated or segmented. Consolidated and segment-level figures
+      would mix, and totals would double-count (F14).
+
+  - element: is_parent_only
+    model: int_num_in_scope
+    mandatory: true
+    basis: >-
+      Critical data element, mandatory. Structurally guaranteed - computed
+      as `coreg is null`, which returns a boolean. Registered so the
+      control is visible to consumers who cannot see the transformation.
+    implication: >-
+      A null here would mean a fact could not be classified as parent-only
+      or co-registrant. Parent and subsidiary figures would mix in any
+      aggregate.
+
+  - element: segments
+    model: int_num_in_scope
+    mandatory: false
+    basis: >-
+      Critical data element, not mandatory. Null is the value: it denotes
+      a consolidated fact (F14). A not_null rule would flag every correct
+      row in the governed population.
+
+  - element: coreg
+    model: int_num_in_scope
+    mandatory: false
+    basis: >-
+      Critical data element, not mandatory. Null denotes a parent-company
+      fact. Absence carries meaning rather than indicating a defect.
+
+  - element: adsh
+    model: stg_submissions
+    mandatory: true
+    basis: Critical data element, mandatory. Primary key.
+    implication: >-
+      A submission with no accession number cannot be joined to the facts
+      it reported. Every fact referencing it becomes an orphan.
+
+  - element: cik
+    model: stg_submissions
+    mandatory: true
+    basis: Critical data element, mandatory. Identifies the filer.
+    implication: >-
+      A filing with no filer identifier cannot be attributed to a
+      registrant. Facts from it cannot be grouped with that registrant's
+      other filings or compared across periods.
+
+  - element: period_end_date
+    model: stg_submissions
+    mandatory: true
+    basis: Critical data element, mandatory. Recast of sub.period.
+    implication: >-
+      A null here where the source period is populated means the cast
+      failed. The filing cannot be placed in a reporting period, and any
+      period-scoped report omits it without warning.
+
+  - element: tag
+    model: stg_tag
+    mandatory: true
+    basis: Critical data element, mandatory. Primary key component.
+    implication: >-
+      A dictionary entry with no tag name cannot be joined to the facts
+      that use it. Those facts lose access to their definition, datatype
+      and period type.
+
+# Grain declarations. Each produces one unique rule.
+grains:
+  - model: stg_submissions
+    columns: [adsh]
+    basis: Primary key. One row per SEC submission.
+    implication: >-
+      A duplicate accession number means the same filing is represented
+      twice. Any join from facts to submissions fans out, multiplying
+      fact rows and inflating every aggregate that crosses the join.
+
+  - model: stg_tag
+    columns: [tag, version]
+    basis: Primary key. One row per concept per taxonomy version.
+    implication: >-
+      A duplicate tag-version pair means one concept carries two
+      definitions. Joins from facts fan out, and which definition a
+      reviewer sees becomes arbitrary.
+
+  - model: int_num_in_scope
+    columns: [adsh, tag, version, ddate, qtrs, uom, coreg, segments]
+    basis: >-
+      Declared grain of the fact table. segments belongs in the key - see
+      F14 for the measurement that established this.
+    implication: >-
+      A duplicate at this grain means the same fact is reported twice for
+      the same filing, concept, period and unit. Every sum over the
+      affected concept double-counts.
+
+# Referential integrity between critical join columns.
+relationships:
+  - model: int_num_in_scope
+    columns: [adsh]
+    references_model: stg_submissions
+    references_columns: [adsh]
+    basis: Every fact must belong to a known submission.
+    implication: >-
+      An accession number with no matching submission means the fact
+      cannot be attributed to a filer or a filing date. It is a value
+      with no provenance, and it will be silently dropped by any report
+      that joins to submissions.
+
+  - model: int_num_in_scope
+    columns: [tag, version]
+    references_model: stg_tag
+    references_columns: [tag, version]
+    basis: Every fact must reference a known concept.
+    implication: >-
+      A tag-version pair with no dictionary entry means the fact
+      references a concept with no definition. It cannot be interpreted,
+      and the rule proposal loop cannot generate any rule for it.

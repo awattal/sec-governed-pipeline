@@ -1,0 +1,17 @@
+rule_id: uc1__stg_submissions__grain__unique
+status: active
+origin: cde_assessment
+use_case: UC-1
+filter: null
+tolerance: null
+created_at: '2026-08-20'
+check_type: unique
+dimension: uniqueness
+target: stg_submissions
+assertion:
+  columns:
+  - adsh
+basis: Primary key. One row per SEC submission.
+implication: A duplicate accession number means the same filing is represented twice.
+  Any join from facts to submissions fans out, multiplying fact rows and inflating
+  every aggregate that crosses the join.

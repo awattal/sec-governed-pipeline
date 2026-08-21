@@ -1,0 +1,15 @@
+rule_id: uc1__int_num_in_scope__qtrs__not_null
+status: active
+origin: cde_assessment
+use_case: UC-1
+filter: null
+tolerance: null
+created_at: '2026-08-20'
+check_type: not_null
+dimension: completeness
+target: int_num_in_scope.qtrs
+assertion: {}
+basis: Critical data element, mandatory. Distinguishes instant from duration facts.
+implication: Period length separates a balance from a flow. Without it a point-in-time
+  value and a twelve-month value are indistinguishable and may be summed together,
+  producing a total that corresponds to nothing.

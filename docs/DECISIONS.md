@@ -323,3 +323,19 @@ Supersedes an earlier proposal to place checks by transform type
 (raw for passthrough, both layers for recast, model for derived).
 That would maintain two rules for one assertion and produce two
 findings for one defect.
+
+## 20 Aug 2026 — Structurally guaranteed rules are registered, not skipped
+
+Three CDEs (is_us_gaap, is_consolidated, is_parent_only) are computed
+by expressions that cannot return null, and two appear in the model's
+WHERE clause. Their not_null rules cannot fail.
+
+They are registered anyway. A consumer cannot see the transformation
+and has no way to distinguish "not checked" from "checked and clean".
+Absence from the registry is not evidence of control. The basis field
+states that the rule is structurally guaranteed, so a reviewer knows
+why it never fires.
+
+Considered and rejected: excluding them on the grounds that a rule
+which cannot fail inflates apparent coverage. That is a technical
+test applied to a governance question.

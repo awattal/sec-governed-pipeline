@@ -1,0 +1,15 @@
+rule_id: uc1__int_num_in_scope__adsh__not_null
+status: active
+origin: cde_assessment
+use_case: UC-1
+filter: null
+tolerance: null
+created_at: '2026-08-20'
+check_type: not_null
+dimension: completeness
+target: int_num_in_scope.adsh
+assertion: {}
+basis: Critical data element, mandatory. Identifies the filing a fact came from.
+implication: A fact with no accession number cannot be traced to the filing that reported
+  it. It cannot be attributed to a registrant, dated, or verified against the source
+  document.

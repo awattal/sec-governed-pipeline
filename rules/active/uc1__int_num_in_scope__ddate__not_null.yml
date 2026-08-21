@@ -1,0 +1,15 @@
+rule_id: uc1__int_num_in_scope__ddate__not_null
+status: active
+origin: cde_assessment
+use_case: UC-1
+filter: null
+tolerance: null
+created_at: '2026-08-20'
+check_type: not_null
+dimension: completeness
+target: int_num_in_scope.ddate
+assertion: {}
+basis: Critical data element, mandatory. Source integer for period_end_date.
+implication: A null here means the filing reported no period for the fact. No downstream
+  date can be derived, and the fact cannot be placed on a timeline or compared across
+  quarters.

@@ -257,3 +257,88 @@ Not work. Notes for the W5 failure analysis.
   disagreeing on column names. `docs/LINEAGE.md` is the record of
   source-to-model renames and would have prevented both. Evidence the
   artifact earns its keep.
+- Baseline technical rules generated from CDE designation and lineage,
+  not proposed by the LLM. Keys get not_null and unique; join columns
+  get relationship checks. Derivable from structure, so deriving them
+  is correct and proposing them would be waste. Draws the boundary of
+  what the LLM is for.
+
+- Re-designation on model change. New or changed models regenerate
+  lineage, which invalidates CDE scores. Scoring cannot be automated -
+  two of three factors are human ratings - so the pipeline detects
+  staleness and flags elements needing rating rather than re-scoring
+  them. Document the process in CDE.md; implement the staleness check
+  only if time allows.
+
+  ## Blocks the use case loop
+
+- config/use_cases.yml does not exist. Use cases are currently
+  recorded only in docs/CDE.md prose. Needed before UC-2, since
+  rule_id prefixes and the findings rollup both key on use case ID.
+
+- identify_targets.py does not exist. Given a use case sentence, the
+  LLM must identify which physical elements it applies to and any row
+  filter. This is semantic work, not lineage traversal - "interest
+  rate below 50% for lending BU" requires mapping business terms to
+  columns. Target list must be reviewable before rules are proposed;
+  a wrong target produces confidently wrong rules.
+
+- propose.py has no use_case parameter. Rules it generates cannot be
+  attributed to a use case or prefixed correctly in rule_id.
+
+## Blocks findings
+
+- compile_rules.py does not exist. Converts rules/active/*.yml into
+  executable dbt tests. Two approaches unresolved: generate one .sql
+  file per rule into transform/tests/ (readable, greppable, but 20+
+  generated files in the repo), or one generic macro reading YAML at
+  runtime (clean repo, opaque tests).
+
+- Findings storage unbuilt. Two tables designed, neither created:
+  rule_registry (current state, rebuilt from YAML each run) and
+  findings (run_id, rule_id, rule_version, rows_checked, rows_failed,
+  run_at). rule_version is the git short SHA, joining a finding to
+  the exact rule text that produced it.
+
+- No rollup view. The point of the use_case field is that a business
+  owner can ask whether their report is trustworthy and get an answer.
+  Cheapest defensible version is a generated docs/CONTROLS.md showing
+  every rule, its use case, last run and pass rate.
+
+## Journey gaps
+
+- Rule amendment path. A finding can mean the data is wrong or the
+  rule is wrong. Disposition handles the first; the second needs a
+  route back to the rule itself. F27 (the accounts payable sign rule
+  that will fire on valid filings) is the concrete case.
+
+- Rule owner. Every active rule needs a named owner, or findings
+  accumulate unattended.
+
+- Requester, reviewer and approver are distinct roles. The PR
+  mechanism enforces this structurally; state it in the README rather
+  than leaving it implicit.
+
+## Polish
+
+- Null rate on int_num_in_scope.value measured at 2.65% (36,864 of
+  1,393,562). Filers can tag a concept and report no amount, so these
+  are not defects. Tolerance unset - decide at rule promotion whether
+  accepted-with-baseline or investigated.
+
+- config/cde.yml and docs/CDE.md can drift. The config is the
+  operative designation; the document holds the reasoning. Add a check
+  that every element in the config appears in the document's matrix,
+  or state the drift risk in the README.
+
+- Rule folders are lifecycle stages (proposed, active), not origin
+  buckets. Origin, basis and use_case are fields on the rule.
+  Considered and rejected a separate rules/baseline/ directory, which
+  would have mixed the two axes.
+
+- README must state that the repository was authored in collaboration
+  with an LLM: code, documentation and rule text drafted by the model,
+  reviewed and corrected by the author. Distinct from the runtime
+  claim that generate_baseline.py makes no model call. A governance
+  case study that is unclear about its own authorship invites the
+  obvious question.
