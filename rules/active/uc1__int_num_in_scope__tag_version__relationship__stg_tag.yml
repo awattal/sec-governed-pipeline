@@ -1,0 +1,22 @@
+rule_id: uc1__int_num_in_scope__tag_version__relationship__stg_tag
+status: active
+origin: cde_assessment
+use_case: UC-1
+filter: null
+tolerance: null
+created_at: '2026-08-20'
+check_type: relationship
+dimension: consistency
+target: int_num_in_scope.tag_version
+assertion:
+  columns:
+  - tag
+  - version
+  references_model: stg_tag
+  references_columns:
+  - tag
+  - version
+basis: Every fact must reference a known concept.
+implication: A tag-version pair with no dictionary entry means the fact references
+  a concept with no definition. It cannot be interpreted, and the rule proposal loop
+  cannot generate any rule for it.

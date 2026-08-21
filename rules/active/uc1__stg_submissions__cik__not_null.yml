@@ -1,0 +1,15 @@
+rule_id: uc1__stg_submissions__cik__not_null
+status: active
+origin: cde_assessment
+use_case: UC-1
+filter: null
+tolerance: null
+created_at: '2026-08-20'
+check_type: not_null
+dimension: completeness
+target: stg_submissions.cik
+assertion: {}
+basis: Critical data element, mandatory. Identifies the filer.
+implication: A filing with no filer identifier cannot be attributed to a registrant.
+  Facts from it cannot be grouped with that registrant's other filings or compared
+  across periods.
