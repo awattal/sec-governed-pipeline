@@ -4,11 +4,12 @@ origin: cde_assessment
 use_case: UC-1
 filter: null
 tolerance: null
-created_at: '2026-08-20'
+created_at: '2026-08-23'
 check_type: not_null
 dimension: completeness
-target: stg_tag.tag
-assertion: {}
+target: stg_tag
+assertion:
+  column: tag
 basis: Critical data element, mandatory. Primary key component.
 implication: A dictionary entry with no tag name cannot be joined to the facts that
   use it. Those facts lose access to their definition, datatype and period type.

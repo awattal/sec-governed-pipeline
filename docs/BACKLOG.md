@@ -416,3 +416,10 @@ Not work. Notes for the W5 failure analysis.
   holds validation failures only, not review decisions. The review
   judgment survives in the PR discussion and nowhere in the repo.
   Decide whether rejected proposals are retained with a disposition.
+
+- Validation rejects columns absent from the target schema but does
+  not reject checks on columns marked constant. target_schema.yml
+  marks segments, is_us_gaap and is_consolidated as constant; a check
+  on any of them cannot fail. The prompt tells the model not to
+  propose one, but nothing enforces it. Add to validate() if a
+  vacuous proposal appears in the volume run.

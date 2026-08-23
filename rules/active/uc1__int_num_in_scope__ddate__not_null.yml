@@ -4,11 +4,12 @@ origin: cde_assessment
 use_case: UC-1
 filter: null
 tolerance: null
-created_at: '2026-08-20'
+created_at: '2026-08-23'
 check_type: not_null
 dimension: completeness
-target: int_num_in_scope.ddate
-assertion: {}
+target: int_num_in_scope
+assertion:
+  column: ddate
 basis: Critical data element, mandatory. Source integer for period_end_date.
 implication: A null here means the filing reported no period for the fact. No downstream
   date can be derived, and the fact cannot be placed on a timeline or compared across
