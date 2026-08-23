@@ -360,3 +360,21 @@ across every element that text describes.
 It does not transfer to datasets without one. The agent reads declared
 meaning; it does not infer meaning from values. Stating the precondition
 is part of the claim, not a caveat attached to it.
+
+## 23 Aug 2026 — The checked column lives in the assertion
+
+`target` names the table. The column a check runs against sits inside
+`assertion`, alongside the shape of the test itself.
+
+Three of the nine check types — `unique`, `identity`, `additivity` —
+assert across a column combination rather than a single column. Holding
+the column in `target` would make it a string that is sometimes one name
+and sometimes four, and would force the compiler to parse it differently
+per check type. `assertion` is already a structure and carries a list
+without special cases.
+
+The convention is `column` for single-column checks and `columns` for
+multi-column ones, fixed per check type rather than chosen per proposal.
+
+The 20 `uc1__` baseline rules were written under the previous convention
+and are regenerated from `generate_baseline.py`.

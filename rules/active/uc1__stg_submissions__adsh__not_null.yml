@@ -4,11 +4,12 @@ origin: cde_assessment
 use_case: UC-1
 filter: null
 tolerance: null
-created_at: '2026-08-20'
+created_at: '2026-08-23'
 check_type: not_null
 dimension: completeness
-target: stg_submissions.adsh
-assertion: {}
+target: stg_submissions
+assertion:
+  column: adsh
 basis: Critical data element, mandatory. Primary key.
 implication: A submission with no accession number cannot be joined to the facts it
   reported. Every fact referencing it becomes an orphan.

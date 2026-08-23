@@ -4,11 +4,12 @@ origin: cde_assessment
 use_case: UC-1
 filter: null
 tolerance: null
-created_at: '2026-08-20'
+created_at: '2026-08-23'
 check_type: not_null
 dimension: completeness
-target: int_num_in_scope.period_end_date
-assertion: {}
+target: int_num_in_scope
+assertion:
+  column: period_end_date
 basis: Critical data element, mandatory. Recast of ddate.
 implication: A null here where ddate is populated means the cast failed - the source
   integer was not a valid date. Any period filter silently drops the row rather than

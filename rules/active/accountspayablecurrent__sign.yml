@@ -3,8 +3,12 @@ status: active
 concept: AccountsPayableCurrent
 check_type: sign
 dimension: accuracy
-target: int_num_in_scope.value
+target: int_num_in_scope
+filter:
+  column: tag
+  value: AccountsPayableCurrent
 assertion:
+  column: value
   direction: non_negative
 rationale: AccountsPayableCurrent has a credit balance type and represents a liability
   owed to vendors. Liabilities cannot be reported as negative amounts in this dataset;

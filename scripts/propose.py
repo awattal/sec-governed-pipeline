@@ -1,4 +1,4 @@
-"""Propose one data quality check for one us-gaap tag.
+"""Propose data quality checks for one us-gaap tag.
 
 Reads the tag and its SEC definition from DuckDB, sends it to a model
 under a fixed check-type vocabulary, validates the reply against that
@@ -35,6 +35,8 @@ REJECTED_DIR = REPO_ROOT / "rules" / "rejected"
 DECLINED_DIR = REPO_ROOT / "rules" / "declined"
 ACTIVE_DIR = REPO_ROOT / "rules" / "active"
 SCHEMA_FILE = REPO_ROOT / "config" / "target_schema.yml"
+
+TARGET_MODEL = "int_num_in_scope"
 
 # The action space. The model may return one of these or null.
 # Anything else is rejected. This constant is the governance boundary.
@@ -114,8 +116,9 @@ def build_context(t: dict) -> str:
         f"period type: {period}\n"
         f"balance type: {balance}\n\n"
         f"definition:\n{t['definition']}\n\n"
-        f"The check will run against int_num_in_scope.value, "
-        f"filtered to rows where tag = '{t['tag']}'.\n"
+        f"The check will run against the {TARGET_MODEL} model, "
+        f"filtered to rows where tag = '{t['tag']}'. Name the column "
+        f"the check applies to in the assertion.\n"
     )
 
 
@@ -150,16 +153,27 @@ def load_coverage() -> str:
     lines = []
     for path in sorted(ACTIVE_DIR.glob("*.yml")):
         rule = yaml.safe_load(path.read_text()) or {}
-        target = rule.get("target", "unknown target")
+        assertion = rule.get("assertion") or {}
+
+        # target names the model, so the checked column comes from the
+        # assertion. What the model needs to know is which column is
+        # already covered, not which table.
+        column = assertion.get("column")
+        if not column:
+            columns = assertion.get("columns")
+            column = f"({', '.join(columns)})" if columns else "unknown column"
+
+        model = rule.get("target", "unknown model")
         check = rule.get("check_type", "unknown check")
         concept = rule.get("concept")
-        scope = f" on {concept}" if concept else " on all rows"
-        lines.append(f"- {check} on {target}{scope}")
+        scope = f", scoped to {concept}" if concept else ", all rows"
+        lines.append(f"- {check} on {model}.{column}{scope}")
 
     if not lines:
         return "No rules are currently active."
 
     return "\n".join(lines)
+
 
 def call_model(prompt: str) -> tuple[str, int, int]:
     """Send text, return (reply text, input tokens, output tokens).
@@ -176,9 +190,6 @@ def call_model(prompt: str) -> tuple[str, int, int]:
         max_tokens=MAX_TOKENS,
         messages=[{"role": "user", "content": prompt}],
     )
-    print(f"stop_reason: {response.stop_reason}")
-    print(f"blocks: {[b.type for b in response.content]}")
-    print(f"tokens out: {response.usage.output_tokens}")
 
     # The reply may contain several blocks — a thinking block can
     # precede the answer. Select by type rather than position.
@@ -199,7 +210,20 @@ class Rejected(Exception):
     """Reply did not satisfy the constraint. Carries the reason."""
 
 
-def validate(raw: str) -> list[dict]:
+def schema_columns() -> set[str]:
+    """Return the column names declared in the target schema.
+
+    Used to reject assertions naming columns that do not exist. The
+    first v2 run proposed a uniqueness check on entity, period and
+    dimensions/axis — none of which are in the model. That was caught
+    at review; at volume it should be caught here.
+    """
+    doc = yaml.safe_load(SCHEMA_FILE.read_text()) or {}
+    columns = doc.get("columns") or {}
+    return set(columns.keys())
+
+
+def validate(raw: str, known_columns: set[str]) -> list[dict]:
     """Parse and check the reply. Raise Rejected with a stated reason.
 
     v2 returns an array of checks. Every entry must satisfy the
@@ -240,6 +264,33 @@ def validate(raw: str) -> list[dict]:
 
         if not isinstance(entry["assertion"], dict):
             raise Rejected(f"{where} assertion is not an object")
+
+        # The column a check runs against lives in the assertion.
+        # unique asserts across a combination and uses `columns`;
+        # every other check type names a single `column`. A decline
+        # carries no assertion and is skipped.
+        if check_type is not None:
+            assertion = entry["assertion"]
+
+            if check_type in {"unique", "relationship"}:
+                named = assertion.get("columns")
+                if not isinstance(named, list) or not named:
+                    raise Rejected(
+                        f"{where} {check_type} requires a non-empty "
+                        f"assertion.columns list"
+                    )
+            else:
+                column = assertion.get("column")
+                if not isinstance(column, str) or not column.strip():
+                    raise Rejected(f"{where} assertion.column is missing or empty")
+                named = [column]
+
+            unknown = [c for c in named if c not in known_columns]
+            if unknown:
+                raise Rejected(
+                    f"{where} assertion names columns absent from the target "
+                    f"schema: {sorted(unknown)}"
+                )
 
         for field in ("rationale", "implication"):
             if not str(entry.get(field) or "").strip():
@@ -291,7 +342,7 @@ def main() -> None:
     }
 
     try:
-        results = validate(raw)
+        results = validate(raw, schema_columns())
     except Rejected as reason:
         write_yaml(
             REJECTED_DIR / f"{tag['tag'].lower()}__{now[:10]}.yml",
@@ -335,7 +386,11 @@ def main() -> None:
                 "concept": tag["tag"],
                 "check_type": check_type,
                 "dimension": entry["dimension"],
-                "target": "int_num_in_scope.value",
+                "target": TARGET_MODEL,
+                # The rows a check applies to. Written by the script,
+                # not asked of the model — the tag is already known,
+                # and the compiler needs it as structure, not prose.
+                "filter": {"column": "tag", "value": tag["tag"]},
                 "assertion": entry["assertion"],
                 "rationale": entry["rationale"],
                 "implication": entry["implication"],

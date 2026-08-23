@@ -47,6 +47,10 @@ def base(rule_id: str, use_case: str, today: str) -> dict:
     filter is null deliberately: baseline rules apply to every row in
     the target model. Use-case rules restricting to a subset populate
     it.
+
+    target names the model only. The column a check runs against is
+    declared in the assertion.
+
     """
     return {
         "rule_id": rule_id,
@@ -74,8 +78,8 @@ def build_not_null(config: dict, today: str) -> list[dict]:
             {
                 "check_type": "not_null",
                 "dimension": "completeness",
-                "target": f"{model}.{element}",
-                "assertion": {},
+                "target": model,
+                "assertion": {"column": element},
                 "basis": entry["basis"],
                 "implication": entry["implication"],
             }
@@ -125,7 +129,7 @@ def build_relationship(config: dict, today: str) -> list[dict]:
             {
                 "check_type": "relationship",
                 "dimension": "consistency",
-                "target": f"{model}.{joined}",
+                "target": model,
                 "assertion": {
                     "columns": entry["columns"],
                     "references_model": target_model,

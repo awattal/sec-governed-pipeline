@@ -5,6 +5,9 @@
 # the model, the validator rejects anything outside them, and the
 # compiler maps each to one expression.
 #
+# The column a check runs against is declared in the assertion, not
+# in target. target names the model only.
+#
 # A check type marked settled: false may not be proposed. It is
 # listed rather than omitted so the boundary is visible.
 
@@ -29,15 +32,16 @@ check_types:
     settled: true
     category: technical
     asserts: The column holds a value on every row in scope.
-    assertion_shape: none
+    assertion_shape:
+      column: string
     expression: "{column} is not null"
 
   unique:
     settled: true
     category: technical
     asserts: No two rows in scope share the same value, or combination of values.
-    assertion_shape: none
-    columns: one or more
+    assertion_shape:
+      columns: list of strings
     expression: handled by dbt unique / dbt_utils.unique_combination_of_columns
 
   accepted_values:
@@ -45,6 +49,7 @@ check_types:
     category: technical
     asserts: Every value in scope appears in a declared list.
     assertion_shape:
+      column: string
       values: list of strings
     expression: "{column} in ({values})"
 
@@ -53,6 +58,7 @@ check_types:
     category: technical
     asserts: Every value in scope matches a declared pattern.
     assertion_shape:
+      column: string
       pattern: regex
     expression: "regexp_matches({column}, '{pattern}')"
 
@@ -61,6 +67,7 @@ check_types:
     category: technical
     asserts: Every value in scope falls between declared bounds.
     assertion_shape:
+      column: string
       min: number or null
       max: number or null
       inclusive: true or false
@@ -71,8 +78,9 @@ check_types:
     category: technical
     asserts: Every value in scope exists in a column of another model.
     assertion_shape:
-      to_model: string
-      to_column: string
+      columns: list of strings
+      references_model: string
+      references_columns: list of strings
     expression: handled by dbt relationships
 
   sign:
@@ -84,6 +92,7 @@ check_types:
       share count of zero is not. The rationale must say which case
       applies.
     assertion_shape:
+      column: string
       direction:
         - non_negative        # >= 0
         - non_positive        # <= 0
@@ -103,6 +112,7 @@ check_types:
       assets equals liabilities plus equity.
     grain: [adsh, ddate, qtrs, uom]
     assertion_shape:
+      column: string
       left: list of concepts
       right: list of concepts
     expression: "sum(left) = sum(right) within grain"
@@ -115,7 +125,7 @@ check_types:
       filing.
     grain: [adsh, ddate, qtrs, uom]
     assertion_shape:
+      column: string
       total: concept
       components: list of concepts
     expression: "total = sum(components) within grain"
-s
