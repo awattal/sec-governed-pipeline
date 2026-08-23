@@ -342,3 +342,77 @@ Not work. Notes for the W5 failure analysis.
   claim that generate_baseline.py makes no model call. A governance
   case study that is unclear about its own authorship invites the
   obvious question.
+
+- Withdrawn (22 Aug). The item claiming propose_v2.md lets the model
+  originate business rules with no declared intent is wrong. The
+  declared intent is the nine-type check vocabulary and the CDE
+  scope, both settled and in the repo. The agent proposes inside a
+  bounded action space and every proposal is reviewed. No per-run
+  intent parameter is needed.
+
+- Open: review volume. v2 permits five checks per concept. Batch
+  size across the in-scope tag set is unknown until a run happens.
+  If the batch exceeds what can be reviewed properly, the review
+  control is nominal. Answer after the single-tag run.
+
+- README is written last, after the loop closes. It argues why the
+  project matters and needs real findings to point at. Mechanism
+  description lives in docs/ARCHITECTURE.md and is written now.
+
+- Additivity proposals name component concepts inferred from
+  definitions. pre.txt carries the filer's actual presentation
+  structure and reaches no model, so nothing verifies a proposed
+  component set against how the filing was presented. Human review
+  is the only check. Exposing pre is a candidate extension, not in
+  current scope.
+
+- Verify the 20 uc1__ baseline rules conform to the shapes declared
+  in config/check_types.yml. They were generated before the config
+  existed. If field names diverge, either regenerate them or the
+  compiler handles two formats. Check before compile_rules.py.
+
+- rules/rejected/ currently mixes two different things: replies that
+  broke the check-type constraint, and replies that failed for
+  mechanical reasons (truncation, malformed JSON). Only the first is
+  governance evidence. Separate them, or tag the reason type, before
+  the volume run. Delete the 2026-08-23 truncation artifact.
+
+- Re-running propose.py on a tag overwrites existing proposals with
+  no warning. A reviewed proposal can be silently replaced by a new
+  one from a different prompt version. Confirmed on
+  accountspayablecurrent__sign.yml, replaced v1 output with v2.
+  Recoverable from git, but the run should refuse or version instead.
+
+- First propose_v2 run, AccountsPayableCurrent, three proposals.
+  All three rejected at review. Two input gaps identified:
+
+  (a) The prompt gives the model no target schema. The unique
+      proposal named columns entity, period, dimensions/axis — none
+      exist in int_num_in_scope. Any check requiring a column name
+      is guesswork without the schema.
+
+  (b) The prompt gives the model no view of existing controls. The
+      not_null proposal duplicates a hand-written dbt test and a
+      uc1__ baseline rule. The model cannot distinguish uncovered
+      from already covered.
+
+- Second confirmed false positive on AccountsPayableCurrent sign,
+  now from both v1 and v2. Vendor overpayment produces a legitimate
+  debit balance. The model reasons from the definition and does not
+  test it against filing practice. Confidence returned high both
+  times. This is the primary evidence for mandatory human review.
+
+- config/check_types.yml requires the sign rationale to address
+  whether zero is valid. propose_v2.md does not ask for it. The
+  proposal did not address it. Prompt and config disagree.
+
+- propose.py writes target: int_num_in_scope.value on every
+  proposal regardless of check type. Wrong for unique, which
+  targets a column combination, and for identity and additivity.
+
+- Proposals rejected at review are deleted, leaving no record of what
+  was rejected or why. Three were deleted in this session: two
+  duplicates and one uom check asserting USD alone. rules/rejected/
+  holds validation failures only, not review decisions. The review
+  judgment survives in the PR discussion and nowhere in the repo.
+  Decide whether rejected proposals are retained with a disposition.

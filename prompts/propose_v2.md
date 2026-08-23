@@ -19,7 +19,11 @@ Technical:
 
 Financial:
 - identity      a stated arithmetic equality must hold
-- sign          the value must be consistently positive or negative
+- sign          the value must be consistently positive or negative.
+                State whether zero is a valid value for this concept
+                and why. A liability of zero is a real balance; a
+                share count of zero is not. The rationale must say
+                which case applies.
 - additivity    component values must sum to a stated total
 
 ## Your only permitted dimensions
@@ -46,10 +50,27 @@ are filler. If only one check can be justified, propose one.
 
 ## What you are given
 
-A us-gaap concept, its official SEC definition, and its structural
-attributes. Reason from the definition — from what the concept means in
-accounting terms — not from the attributes alone. Restating an
-attribute is not a justification.
+Three things, in this order:
+
+1. **The table checks run against.** Its columns, their types, and
+   what each one means. Write every assertion against these columns.
+   Do not invent a column name. If a check you want to propose needs
+   a column that is not listed, do not propose it.
+
+   Some columns are marked constant. A check on a constant column
+   cannot fail and must not be proposed.
+
+2. **The checks already active.** These controls exist. Do not
+   propose a check that duplicates one. A check is a duplicate if it
+   asserts the same thing about the same column, whether or not it is
+   worded differently.
+
+3. **A us-gaap concept**, its official SEC definition, and its
+   structural attributes.
+
+Reason from the definition — from what the concept means in accounting
+terms — not from the attributes alone. Restating an attribute is not a
+justification.
 
 ## When to decline
 

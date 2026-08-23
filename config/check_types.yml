@@ -1,0 +1,121 @@
+# config/check_types.yml
+#
+# The action space. Every value a proposal may use for check_type,
+# assertion, and filter is declared here. The prompt lists these to
+# the model, the validator rejects anything outside them, and the
+# compiler maps each to one expression.
+#
+# A check type marked settled: false may not be proposed. It is
+# listed rather than omitted so the boundary is visible.
+
+target_model: int_num_in_scope
+
+filters:
+  description: >
+    How a rule selects the rows it applies to. Only these two shapes
+    are permitted. A rule needing more than this is too complex to be
+    machine-generated and should be written by hand.
+  shapes:
+    equals:
+      fields: [column, value]
+      expression: "{column} = '{value}'"
+    in:
+      fields: [column, values]
+      expression: "{column} in ({values})"
+
+check_types:
+
+  not_null:
+    settled: true
+    category: technical
+    asserts: The column holds a value on every row in scope.
+    assertion_shape: none
+    expression: "{column} is not null"
+
+  unique:
+    settled: true
+    category: technical
+    asserts: No two rows in scope share the same value, or combination of values.
+    assertion_shape: none
+    columns: one or more
+    expression: handled by dbt unique / dbt_utils.unique_combination_of_columns
+
+  accepted_values:
+    settled: true
+    category: technical
+    asserts: Every value in scope appears in a declared list.
+    assertion_shape:
+      values: list of strings
+    expression: "{column} in ({values})"
+
+  format:
+    settled: true
+    category: technical
+    asserts: Every value in scope matches a declared pattern.
+    assertion_shape:
+      pattern: regex
+    expression: "regexp_matches({column}, '{pattern}')"
+
+  range:
+    settled: true
+    category: technical
+    asserts: Every value in scope falls between declared bounds.
+    assertion_shape:
+      min: number or null
+      max: number or null
+      inclusive: true or false
+    expression: "{column} between {min} and {max}"
+
+  relationship:
+    settled: true
+    category: technical
+    asserts: Every value in scope exists in a column of another model.
+    assertion_shape:
+      to_model: string
+      to_column: string
+    expression: handled by dbt relationships
+
+  sign:
+    settled: true
+    category: financial
+    asserts: >
+      The value carries the direction the concept implies. Zero is
+      treated explicitly — a liability of zero is a real balance, a
+      share count of zero is not. The rationale must say which case
+      applies.
+    assertion_shape:
+      direction:
+        - non_negative        # >= 0
+        - non_positive        # <= 0
+        - strictly_positive   # > 0
+        - strictly_negative   # < 0
+    expression:
+      non_negative: "{column} >= 0"
+      non_positive: "{column} <= 0"
+      strictly_positive: "{column} > 0"
+      strictly_negative: "{column} < 0"
+
+  identity:
+    settled: true
+    category: financial
+    asserts: >
+      Two sets of concepts sum to the same value within one filing —
+      assets equals liabilities plus equity.
+    grain: [adsh, ddate, qtrs, uom]
+    assertion_shape:
+      left: list of concepts
+      right: list of concepts
+    expression: "sum(left) = sum(right) within grain"
+
+  additivity:
+    settled: true
+    category: financial
+    asserts: >
+      A total equals the sum of its declared components within one
+      filing.
+    grain: [adsh, ddate, qtrs, uom]
+    assertion_shape:
+      total: concept
+      components: list of concepts
+    expression: "total = sum(components) within grain"
+s

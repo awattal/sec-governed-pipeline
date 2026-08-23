@@ -1,0 +1,31 @@
+rule_id: accountspayablecurrent__accepted_values
+status: active
+concept: AccountsPayableCurrent
+check_type: accepted_values
+dimension: consistency
+target: int_num_in_scope.value
+assertion:
+  column: qtrs
+  values:
+  - 0
+rationale: AccountsPayableCurrent has period type 'instant' — it is a balance sheet
+  snapshot as of ddate, not a flow measured over a duration. Per the schema's own
+  definition of qtrs, point-in-time balance sheet concepts must carry qtrs = 0; any
+  nonzero qtrs would mean the fact is being reported as if accumulated over a period,
+  which is inconsistent with what an instant liability balance means.
+implication: A nonzero qtrs on this tag would indicate the fact was parsed or classified
+  incorrectly — either the wrong context was attached during XBRL extraction or a
+  duration-based fact was mistakenly tagged as AccountsPayableCurrent — and would
+  corrupt any point-in-time balance sheet reconstruction.
+confidence: high
+observation: null
+definition: Carrying value as of the balance sheet date of liabilities incurred (and
+  for which invoices have typically been received) and payable to vendors for goods
+  and services received that are used in an entity's business. Used to reflect the
+  current portion of the liabilities (due within one year or within the normal operating
+  cycle if longer).
+model: claude-sonnet-5
+prompt_version: propose_v2.md
+proposed_at: '2026-08-23T09:51:38+00:00'
+tokens_in: 3174
+tokens_out: 1632
