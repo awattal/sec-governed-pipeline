@@ -211,7 +211,7 @@ history table — git provides both. Rule lifecycle is git log.
 Findings carry rule_version (git short sha) as the join back to
 the rule text that produced them.
 
-16 Aug 2026 — Local open-weight model comparison not built
+## 16 Aug 2026 — Local open-weight model comparison not built
 
 Considered running the same prompt and vocabulary against a local
 open-weight model (Llama / Nemotron / Qwen class) via Ollama and
@@ -339,3 +339,24 @@ why it never fires.
 Considered and rejected: excluding them on the grounds that a rule
 which cannot fail inflates apparent coverage. That is a technical
 test applied to a governance question.
+
+## 22 Aug 2026 — The agent operates on the tag dictionary, not the pipeline
+
+tag is the only column in the SEC dataset carrying free text — a label
+and a definition per concept. Every other column holds codes, dates,
+numbers, or identifiers, and every constraint on those is derivable
+from structure. Those constraints are derived from structure.
+
+The model is placed where meaning is written in prose and recorded
+nowhere else. Anywhere else in this pipeline it would be decorative —
+producing by inference what a query already produces by fact.
+
+## 22 Aug 2026 — Generalisation claim and its precondition
+
+The method transfers to any dataset with a data dictionary or business
+glossary: the agent reads declared meaning and scales one stated intent
+across every element that text describes.
+
+It does not transfer to datasets without one. The agent reads declared
+meaning; it does not infer meaning from values. Stating the precondition
+is part of the claim, not a caveat attached to it.

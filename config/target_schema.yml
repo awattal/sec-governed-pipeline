@@ -1,0 +1,125 @@
+# config/target_schema.yml
+#
+# The table checks run against. Injected into the proposal prompt so
+# the model writes assertions against columns that exist, with their
+# actual meaning, rather than inferring names from the concept.
+#
+# Constant columns are marked. A check on a constant column is
+# vacuous, and the model should not propose one.
+
+model: int_num_in_scope
+grain: >
+  One reported fact. A fact is identified by filing, concept, date,
+  duration, and unit of measure together — no single column is unique.
+
+scope: >
+  Standard us-gaap tags only, consolidated facts only. Custom
+  extension tags and segment-level breakdowns are excluded upstream
+  and cannot appear here.
+
+columns:
+
+  adsh:
+    type: varchar
+    meaning: >
+      Accession number. Identifies one filing submitted to the SEC.
+      Every fact belongs to exactly one filing.
+
+  tag:
+    type: varchar
+    meaning: >
+      The accounting concept the fact reports, e.g.
+      AccountsPayableCurrent. This is the column a concept-scoped
+      rule filters on.
+
+  version:
+    type: varchar
+    meaning: >
+      The taxonomy release the concept comes from, e.g. us-gaap/2025.
+      Always begins us-gaap/ in this model.
+
+  taxonomy:
+    type: varchar
+    meaning: The taxonomy family the concept belongs to.
+
+  coreg:
+    type: varchar
+    meaning: >
+      Co-registrant. Null when the fact is the parent registrant's
+      own. Populated when the fact belongs to a subsidiary filing
+      alongside the parent.
+
+  segments:
+    type: varchar
+    constant: null
+    meaning: >
+      Dimensional breakdown — business segment, geography, class of
+      stock. Always null here because the model keeps only
+      consolidated facts. Scoping a rule to segments has no effect.
+
+  ddate:
+    type: bigint
+    meaning: >
+      The date the fact refers to, stored as an integer in YYYYMMDD
+      form. Integer arithmetic on this column is not date arithmetic.
+
+  period_end_date:
+    type: date
+    meaning: >
+      ddate parsed to a real date. Use this for anything involving
+      date comparison or ordering.
+
+  qtrs:
+    type: bigint
+    meaning: >
+      How many quarters the fact covers. 0 means a point-in-time
+      measure taken on ddate — a balance sheet value. 1 means a
+      quarter, 4 means a year. Balance sheet concepts appear with
+      qtrs = 0; income and cash flow concepts appear with qtrs > 0.
+
+  uom:
+    type: varchar
+    meaning: >
+      Unit of measure. Currency codes for monetary concepts — USD
+      dominates but many others appear, as foreign filers report in
+      their own currency. Non-monetary concepts use shares, pure, or
+      other unit codes. Values in different units are not comparable
+      and must not be summed or compared across units.
+
+  value:
+    type: double
+    meaning: >
+      The reported amount. This is the column most value-based checks
+      target.
+
+  footnote:
+    type: varchar
+    meaning: Filer-supplied note attached to the fact. Usually null.
+
+  is_us_gaap:
+    type: boolean
+    constant: true
+    meaning: >
+      Derived from version. Always true because the model filters to
+      us-gaap tags.
+
+  is_consolidated:
+    type: boolean
+    constant: true
+    meaning: >
+      Derived from segments being null. Always true because the model
+      filters to consolidated facts.
+
+  is_parent_only:
+    type: boolean
+    constant_observed: true
+    meaning: >
+      Derived from coreg being null. True when the fact is the parent
+      registrant's own rather than a co-registrant's. True on every
+      row in 2025Q4 — no co-registrant facts are present — but not
+      filtered, so this is an observed property of this quarter, not
+      a guarantee. A later quarter may contain false.
+
+  quarter:
+    type: varchar
+    meaning: The SEC quarterly dataset the fact was ingested from.

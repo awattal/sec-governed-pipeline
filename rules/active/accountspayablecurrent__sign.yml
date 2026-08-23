@@ -1,0 +1,30 @@
+rule_id: accountspayablecurrent__sign
+status: active
+concept: AccountsPayableCurrent
+check_type: sign
+dimension: accuracy
+target: int_num_in_scope.value
+assertion:
+  direction: non_negative
+rationale: AccountsPayableCurrent has a credit balance type and represents a liability
+  owed to vendors. Liabilities cannot be reported as negative amounts in this dataset;
+  a negative figure would imply a debit balance, which contradicts the concept's definition.
+  Zero is a valid value here — a company with no outstanding vendor invoices at the
+  balance sheet date legitimately reports zero accounts payable, unlike a share count
+  where zero would be structurally meaningless.
+implication: A negative value would mean the fact is either mis-tagged (e.g. a contra-liability
+  or netted figure reported under the wrong concept) or a sign-flip error upstream,
+  causing understatement of total liabilities for any consumer summing this tag into
+  a balance sheet.
+confidence: high
+observation: null
+definition: Carrying value as of the balance sheet date of liabilities incurred (and
+  for which invoices have typically been received) and payable to vendors for goods
+  and services received that are used in an entity's business. Used to reflect the
+  current portion of the liabilities (due within one year or within the normal operating
+  cycle if longer).
+model: claude-sonnet-5
+prompt_version: propose_v2.md
+proposed_at: '2026-08-23T09:51:38+00:00'
+tokens_in: 3174
+tokens_out: 1632

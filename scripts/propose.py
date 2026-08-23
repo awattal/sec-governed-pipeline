@@ -26,13 +26,15 @@ from anthropic import Anthropic
 # --- Configuration ----------------------------------------------------
 
 MODEL = "claude-sonnet-5"
-PROMPT_FILE = Path("prompts/propose_v1.md")
-MAX_TOKENS = 1024
+PROMPT_FILE = Path("prompts/propose_v2.md")
+MAX_TOKENS = 4096
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 PROPOSED_DIR = REPO_ROOT / "rules" / "proposed"
 REJECTED_DIR = REPO_ROOT / "rules" / "rejected"
 DECLINED_DIR = REPO_ROOT / "rules" / "declined"
+ACTIVE_DIR = REPO_ROOT / "rules" / "active"
+SCHEMA_FILE = REPO_ROOT / "config" / "target_schema.yml"
 
 # The action space. The model may return one of these or null.
 # Anything else is rejected. This constant is the governance boundary.
@@ -48,7 +50,17 @@ CHECK_TYPES = {
     "additivity",
 }
 
-REQUIRED_FIELDS = {"check_type", "assertion", "rationale", "implication", "confidence"}
+REQUIRED_FIELDS = {"check_type", "dimension", "assertion",
+                   "rationale", "implication", "confidence"}
+
+DIMENSIONS = {
+    "completeness",
+    "uniqueness",
+    "timeliness",
+    "validity",
+    "accuracy",
+    "consistency",
+}
 
 # Encodings are expanded to words before the model sees them. Both
 # columns may use single letters, and "D" means duration in one and
@@ -109,6 +121,46 @@ def build_context(t: dict) -> str:
 
 # --- Model ------------------------------------------------------------
 
+def load_schema() -> str:
+    """Return the target schema as text for the prompt.
+
+    Injected verbatim rather than reformatted. The file is written to
+    be read by a model, and a second rendering would be a second place
+    the description could drift.
+    """
+    if not SCHEMA_FILE.exists():
+        sys.exit(f"Schema file not found: {SCHEMA_FILE}")
+    return SCHEMA_FILE.read_text()
+
+
+def load_coverage() -> str:
+    """Summarise the rules already active, one line each.
+
+    The model cannot see the repository. Without this it re-proposes
+    controls that already exist — confirmed on the first v2 run, where
+    a not_null proposal duplicated both a hand-written dbt test and a
+    baseline rule.
+
+    Summarised rather than injected whole: what matters is which
+    element is already checked and how, not the full rule record.
+    """
+    if not ACTIVE_DIR.exists():
+        return "No rules are currently active."
+
+    lines = []
+    for path in sorted(ACTIVE_DIR.glob("*.yml")):
+        rule = yaml.safe_load(path.read_text()) or {}
+        target = rule.get("target", "unknown target")
+        check = rule.get("check_type", "unknown check")
+        concept = rule.get("concept")
+        scope = f" on {concept}" if concept else " on all rows"
+        lines.append(f"- {check} on {target}{scope}")
+
+    if not lines:
+        return "No rules are currently active."
+
+    return "\n".join(lines)
+
 def call_model(prompt: str) -> tuple[str, int, int]:
     """Send text, return (reply text, input tokens, output tokens).
 
@@ -124,8 +176,18 @@ def call_model(prompt: str) -> tuple[str, int, int]:
         max_tokens=MAX_TOKENS,
         messages=[{"role": "user", "content": prompt}],
     )
+    print(f"stop_reason: {response.stop_reason}")
+    print(f"blocks: {[b.type for b in response.content]}")
+    print(f"tokens out: {response.usage.output_tokens}")
+
+    # The reply may contain several blocks — a thinking block can
+    # precede the answer. Select by type rather than position.
+    text_blocks = [b.text for b in response.content if b.type == "text"]
+    if not text_blocks:
+        sys.exit("Model returned no text block.")
+
     return (
-        response.content[0].text,
+        "\n".join(text_blocks),
         response.usage.input_tokens,
         response.usage.output_tokens,
     )
@@ -137,30 +199,51 @@ class Rejected(Exception):
     """Reply did not satisfy the constraint. Carries the reason."""
 
 
-def validate(raw: str) -> dict:
-    """Parse and check the reply. Raise Rejected with a stated reason."""
+def validate(raw: str) -> list[dict]:
+    """Parse and check the reply. Raise Rejected with a stated reason.
+
+    v2 returns an array of checks. Every entry must satisfy the
+    constraint; one bad entry rejects the whole reply, because a
+    partially valid batch cannot be reviewed as a unit.
+    """
     try:
         parsed = json.loads(raw)
     except json.JSONDecodeError as exc:
         raise Rejected(f"reply is not valid JSON: {exc}")
 
-    if not isinstance(parsed, dict):
-        raise Rejected("reply is JSON but not an object")
+    if not isinstance(parsed, list):
+        raise Rejected("reply is JSON but not an array")
 
-    missing = REQUIRED_FIELDS - parsed.keys()
-    if missing:
-        raise Rejected(f"missing required fields: {sorted(missing)}")
+    if not parsed:
+        raise Rejected("reply is an empty array")
 
-    check_type = parsed["check_type"]
-    if check_type is not None and check_type not in CHECK_TYPES:
-        raise Rejected(f"check_type outside vocabulary: {check_type!r}")
+    for position, entry in enumerate(parsed):
+        where = f"entry {position}"
 
-    if not isinstance(parsed["assertion"], dict):
-        raise Rejected("assertion is not an object")
+        if not isinstance(entry, dict):
+            raise Rejected(f"{where} is not an object")
 
-    for field in ("rationale", "implication"):
-        if not str(parsed.get(field) or "").strip():
-            raise Rejected(f"{field} is empty")
+        missing = REQUIRED_FIELDS - entry.keys()
+        if missing:
+            raise Rejected(f"{where} missing fields: {sorted(missing)}")
+
+        check_type = entry["check_type"]
+        if check_type is not None and check_type not in CHECK_TYPES:
+            raise Rejected(f"{where} check_type outside vocabulary: {check_type!r}")
+
+        dimension = entry["dimension"]
+        if dimension is not None and dimension not in DIMENSIONS:
+            raise Rejected(f"{where} dimension outside vocabulary: {dimension!r}")
+
+        if (check_type is None) != (dimension is None):
+            raise Rejected(f"{where} check_type and dimension must both be null or both set")
+
+        if not isinstance(entry["assertion"], dict):
+            raise Rejected(f"{where} assertion is not an object")
+
+        for field in ("rationale", "implication"):
+            if not str(entry.get(field) or "").strip():
+                raise Rejected(f"{where} {field} is empty")
 
     return parsed
 
@@ -187,7 +270,12 @@ def main() -> None:
         sys.exit(f"Prompt file not found: {PROMPT_FILE}")
 
     tag = fetch_tag(db_path, args.tag)
-    prompt = PROMPT_FILE.read_text() + "\n\n" + build_context(tag)
+    prompt = "\n\n".join([
+        PROMPT_FILE.read_text(),
+        "## The table checks run against\n\n" + load_schema(),
+        "## Checks already active\n\n" + load_coverage(),
+        build_context(tag),
+    ])
 
     raw, tokens_in, tokens_out = call_model(prompt)
     now = datetime.now(timezone.utc).isoformat(timespec="seconds")
@@ -203,7 +291,7 @@ def main() -> None:
     }
 
     try:
-        result = validate(raw)
+        results = validate(raw)
     except Rejected as reason:
         write_yaml(
             REJECTED_DIR / f"{tag['tag'].lower()}__{now[:10]}.yml",
@@ -211,43 +299,58 @@ def main() -> None:
         )
         sys.exit(f"REJECTED: {reason}")
 
-    check_type = result["check_type"]
-
-    if check_type is None:
+    # A decline arrives as a single entry with check_type null. It is
+    # recorded separately from proposals — a decline is evidence the
+    # constraint held, not a rule awaiting review.
+    if len(results) == 1 and results[0]["check_type"] is None:
+        entry = results[0]
         write_yaml(
             DECLINED_DIR / f"{tag['tag'].lower()}__declined.yml",
             {
                 "rule_id": f"{tag['tag'].lower()}__declined",
                 **provenance,
-                "rationale": result["rationale"],
-                "observation": result.get("observation"),
+                "rationale": entry["rationale"],
+                "observation": entry.get("observation"),
             },
         )
         print("Model declined to propose a check.")
         return
 
-    rule_id = f"{tag['tag'].lower()}__{check_type}"
-    write_yaml(
-        PROPOSED_DIR / f"{rule_id}.yml",
-        {
-            "rule_id": rule_id,
-            "status": "proposed",
-            "concept": tag["tag"],
-            "check_type": check_type,
-            "target": "int_num_in_scope.value",
-            "assertion": result["assertion"],
-            "rationale": result["rationale"],
-            "implication": result["implication"],
-            "confidence": result["confidence"],
-            "observation": result.get("observation"),
-            "definition": tag["definition"],
-            "model": MODEL,
-            "prompt_version": PROMPT_FILE.name,
-            "proposed_at": now,
-            "tokens_in": tokens_in,
-            "tokens_out": tokens_out,
-        },
-    )
+    # Two checks of the same type on one concept would collide on
+    # rule_id. Suffix duplicates rather than silently overwriting.
+    seen: dict[str, int] = {}
+
+    for entry in results:
+        check_type = entry["check_type"]
+        base = f"{tag['tag'].lower()}__{check_type}"
+
+        seen[base] = seen.get(base, 0) + 1
+        rule_id = base if seen[base] == 1 else f"{base}_{seen[base]}"
+
+        write_yaml(
+            PROPOSED_DIR / f"{rule_id}.yml",
+            {
+                "rule_id": rule_id,
+                "status": "proposed",
+                "concept": tag["tag"],
+                "check_type": check_type,
+                "dimension": entry["dimension"],
+                "target": "int_num_in_scope.value",
+                "assertion": entry["assertion"],
+                "rationale": entry["rationale"],
+                "implication": entry["implication"],
+                "confidence": entry["confidence"],
+                "observation": entry.get("observation"),
+                "definition": tag["definition"],
+                "model": MODEL,
+                "prompt_version": PROMPT_FILE.name,
+                "proposed_at": now,
+                "tokens_in": tokens_in,
+                "tokens_out": tokens_out,
+            },
+        )
+
+    print(f"{len(results)} proposal(s) written.")
 
 
 if __name__ == "__main__":
